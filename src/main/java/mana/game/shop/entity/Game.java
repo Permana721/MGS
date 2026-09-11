@@ -11,11 +11,11 @@ public abstract class Game {
     private double price;
     private GameType gameType;
     private Integer stock;
-    private double size;
+    private Double size;
     private LocalDate release_date;
     private Timestamp created_at;
 
-    public Game(String title, GameCategory gameCategory, double price, GameType gameType, Integer stock, double size, LocalDate release_date) {
+    public Game(String title, GameCategory gameCategory, double price, GameType gameType, Integer stock, Double size, LocalDate release_date) {
         this.title = title;
         this.gameCategory = gameCategory;
         this.price = price;
