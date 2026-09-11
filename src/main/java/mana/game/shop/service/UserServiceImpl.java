@@ -66,22 +66,22 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public boolean addBalance(int id, double balance) {
-        checkBalance(balance);
-
         User user = findUser(id);
-
         checkIsActive(user);
+        checkBalance(balance);
 
         return userRepository.topup(id, balance);
     }
 
     @Override
     public boolean decreaseBalance(Connection connection, int id, double balance) throws SQLException {
+        User user = findUser(id);
+        checkIsActive(user);
         checkBalance(balance);
 
-        User user = findUser(id);
-
-        checkIsActive(user);
+        if (user.getBalance() < balance) {
+            throw new IllegalArgumentException("Inefficient Balance!");
+        }
 
         return userRepository.deductBalance(connection, id, balance);
     }
@@ -92,7 +92,7 @@ public class UserServiceImpl implements UserService {
     }
 
     private void checkBalance(double balance) {
-        if (balance < 0) {
+        if (balance <= 0) {
             throw new RuntimeException("The amount must be greater than 0!");
         }
     }
