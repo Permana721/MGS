@@ -58,8 +58,8 @@ public class UserServiceTest {
 
     @Test
     @EnabledOnJre(JRE.JAVA_21)
-    @DisplayName("Get User")
-    void getUser() {
+    @DisplayName("Find By Id")
+    void findById() {
         User mockUser = createMockUser(1, "surya", UserRole.CUSTOMER, 10_000);
 
         Mockito.when(userRepository.findById(mockUser.getId()))
