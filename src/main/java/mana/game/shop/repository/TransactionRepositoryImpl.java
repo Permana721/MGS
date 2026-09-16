@@ -2,6 +2,7 @@ package mana.game.shop.repository;
 
 import mana.game.shop.entity.Transaction;
 import mana.game.shop.entity.User;
+import mana.game.shop.util.DatabaseUtil;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -50,7 +51,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
             return transactions;
 
         } catch (SQLException exception) {
-            throw new RuntimeException("Gagal mengambil riwayat transaksi user: " + exception.getMessage(), exception);
+            throw new RuntimeException("Failed to retrieve the user's transaction history: " + exception.getMessage(), exception);
         }
     }
 
@@ -72,7 +73,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
             }
 
         } catch (SQLException exception) {
-            throw new RuntimeException("Gagal memeriksa kepemilikan game: " + exception.getMessage(), exception);
+            throw new RuntimeException("Failed to verify game ownership: " + exception.getMessage(), exception);
         }
     }
 
@@ -82,7 +83,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
         transaction.setUserId(resultSet.getInt("user_id"));
         transaction.setGameId(resultSet.getInt("game_id"));
         transaction.setAmount(resultSet.getDouble("amount"));
-        transaction.setTransactionDate(resultSet.getTimestamp("transaction_date"));
+        transaction.setTransactionDate(DatabaseUtil.getInstant(resultSet, "transaction_date"));
         return transaction;
     }
 }
