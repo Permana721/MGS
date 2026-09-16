@@ -49,6 +49,11 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
+    public List<Game> findGamebyName(String name) throws SQLException {
+        return gameRepository.findByName(name);
+    }
+
+    @Override
     public boolean decreaseGameStock(Connection connection, int id, int stock) throws SQLException {
         checkTypeGame(id);
         findGame(id);
