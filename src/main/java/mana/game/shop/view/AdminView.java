@@ -4,7 +4,6 @@ import mana.game.shop.entity.*;
 import mana.game.shop.service.GameService;
 import mana.game.shop.service.TransactionService;
 import mana.game.shop.service.UserService;
-import mana.game.shop.util.CurrencyUtil;
 import mana.game.shop.util.InputUtil;
 
 import java.time.LocalDate;
@@ -39,6 +38,7 @@ public class AdminView {
             System.out.println("4. View all games");
             System.out.println("5. View all users");
             System.out.println("6. Ban/Unban user");
+            System.out.println("7. Add Admin");
             System.out.println("0. Logout");
 
             String input = InputUtil.stringInput("Choice: ");
@@ -50,6 +50,7 @@ public class AdminView {
                 case "4" -> viewAllGames();
                 case "5" -> viewAllUsers();
                 case "6" -> banUser();
+                case "7" -> addAdmin();
                 case "0" -> {
                     return;
                 }
@@ -160,11 +161,11 @@ public class AdminView {
                 selectedGame.setRelease_date(newDate);
             }
             case 0 -> {
-                System.out.println("Update cancelled.");
+                System.err.println("Update cancelled.");
                 return;
             }
             default -> {
-                System.out.println("Invalid option!");
+                System.err.println("Invalid option!");
                 return;
             }
         }
@@ -214,7 +215,7 @@ public class AdminView {
                         System.out.println("Password: " + user.getPassword());
                         System.out.println("Email: " + user.getEmail());
                         System.out.println("Role: " + user.getUserRole());
-                        System.out.println("Balance: " + CurrencyUtil.toRupiahNumber(user.getBalance()));
+                        System.out.println("Balance: " + InputUtil.decimalFormat(user.getBalance()));
                         if (user.isIs_active()) {
                             System.out.println("Status: Active");
                         } else {
@@ -246,6 +247,22 @@ public class AdminView {
                 System.out.println("User with Id " + id + " was successfully banned!");
             } else {
                 throw new RuntimeException("Update failed!");
+            }
+        }
+    }
+
+    public void addAdmin(){
+        System.out.println("ADD ADMIN PAGE");
+        String username = InputUtil.stringInput("Input username: ");
+        if (username.isBlank()) {
+            throw new IllegalArgumentException("Please input the username!");
+        } else {
+            try {
+                User newAdmin = new User(username, username, username + "@mail.com", UserRole.ADMIN);
+                userService.addUser(newAdmin);
+                System.out.println("Admin with username: " + newAdmin.getUsername() + " successfully created!");
+            } catch (RuntimeException exception) {
+                throw new RuntimeException(exception);
             }
         }
     }
