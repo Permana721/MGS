@@ -3,12 +3,10 @@ package mana.game.shop.service;
 import mana.game.shop.entity.User;
 import mana.game.shop.entity.UserRole;
 import mana.game.shop.repository.UserRepository;
-import mana.game.shop.util.CurrencyUtil;
+import mana.game.shop.util.InputUtil;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.condition.EnabledForJreRange;
 import org.junit.jupiter.api.condition.EnabledOnJre;
 import org.junit.jupiter.api.condition.JRE;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import java.sql.Connection;
@@ -209,7 +207,7 @@ public class UserServiceTest {
                     System.out.println("Password: " + user.getPassword());
                     System.out.println("Email: " + user.getEmail());
                     System.out.println("Role: " + user.getUserRole());
-                    System.out.println("Balance: " + CurrencyUtil.toRupiahNumber(user.getBalance()));
+                    System.out.println("Balance: " + InputUtil.decimalFormat(user.getBalance()));
                     if (user.isIs_active()) {
                         System.out.println("Status: Active");
                     } else {
