@@ -1,19 +1,20 @@
 package mana.game.shop.entity;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 
 public class Transaction {
     private int id;
     private int userId;
     private int gameId;
     private double amount;
-    private Timestamp transactionDate;
+    private Instant transactionDate;
 
     public Transaction(int userId, int gameId, double amount) {
         this.userId = userId;
         this.gameId = gameId;
         this.amount = amount;
-        this.transactionDate = new Timestamp(System.currentTimeMillis());
+        this.transactionDate = Instant.ofEpochMilli(System.currentTimeMillis());
     }
 
     public Transaction() {
@@ -51,11 +52,11 @@ public class Transaction {
         this.amount = amount;
     }
 
-    public void setTransactionDate(Timestamp transactionDate) {
+    public void setTransactionDate(Instant transactionDate) {
         this.transactionDate = transactionDate;
     }
 
-    public Timestamp getTransactionDate() {
+    public Instant getTransactionDate() {
         return transactionDate;
     }
 }
