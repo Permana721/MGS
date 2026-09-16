@@ -13,5 +13,6 @@ public interface GameRepository {
     boolean delete(int id);
     boolean decreaseStock(Connection connection, int id, int stock) throws SQLException;
     Optional<Game> findById(int id);
+    List<Game> findByName(String name) throws SQLException;
     List<Game> findAll();
 }
