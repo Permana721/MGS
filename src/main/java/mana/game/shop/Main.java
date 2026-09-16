@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 public class Main {
-    static void main(String[] args) throws SQLException {
+    public static void main(String[] args) throws SQLException {
         HikariDataSource dataSource = DatabaseUtil.getDataSource();
         UserRepository userRepository = new UserRepositoryImpl(dataSource);
         GameRepository gameRepository = new GameRepositoryImpl(dataSource);
