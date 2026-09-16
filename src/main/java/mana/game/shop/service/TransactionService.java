@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface TransactionService {
     boolean buyGame(int userId, int gameId) throws SQLException;
-    List<Transaction> findTransactionById(int id);
+    List<Transaction> findTransactionById(int userId);
 }
