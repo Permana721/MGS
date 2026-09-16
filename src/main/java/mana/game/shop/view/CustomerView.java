@@ -2,16 +2,20 @@ package mana.game.shop.view;
 
 import mana.game.shop.entity.Game;
 import mana.game.shop.entity.GameType;
+import mana.game.shop.entity.Transaction;
 import mana.game.shop.entity.User;
 import mana.game.shop.service.GameService;
 import mana.game.shop.service.TransactionService;
 import mana.game.shop.service.UserService;
-import mana.game.shop.util.CurrencyUtil;
 import mana.game.shop.util.InputUtil;
 
 import java.sql.SQLException;
+import java.time.Instant;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class CustomerView {
     private UserService userService;
@@ -32,10 +36,13 @@ public class CustomerView {
             System.out.println("Customer Menu");
             System.out.println("Welcome " + currentUser.getUsername());
             System.out.println("==================================");
-            System.out.println("1. Topup");
+            System.out.println("1. Top up balance");
             System.out.println("2. Buy game");
-            System.out.println("3. Edit profile");
-            System.out.println("4. See profile");
+            System.out.println("3. Search game");
+            System.out.println("4. Edit profile");
+            System.out.println("5. See profile");
+            System.out.println("6. Transaction history");
+
             System.out.println("0. Logout");
 
             int input = InputUtil.intInput("Choice: ");
@@ -43,8 +50,10 @@ public class CustomerView {
             switch (input){
                 case 1 -> topup();
                 case 2 -> buyGame();
-                case 3 -> editProfile();
-                case 4 -> seeProfile();
+                case 3 -> searchGame();
+                case 4 -> editProfile();
+                case 5 -> seeProfile();
+                case 6 -> displayUserTransactions(currentUser);
                 case 0 -> {
                     return;
                 }
@@ -86,6 +95,13 @@ public class CustomerView {
             System.out.println("Now you have a game: " + gameService.findGame(gameId).getTitle());
             System.out.println("And your balance is: Rp. " + InputUtil.decimalFormat(currentUser.getBalance()));
         }
+    }
+
+    private void searchGame() throws SQLException {
+        String name = InputUtil.stringInput("Input the name of game went you search: ");
+        List<Game> games = gameService.findGamebyName(name);
+        System.out.println(games.size() + " result for game with name " + name + " : ");
+        games.forEach(game -> System.out.print(game.getTitle() + "\n"));
     }
 
     private void editProfile() {
@@ -134,14 +150,21 @@ public class CustomerView {
     private void seeProfile() {
         System.out.println("========================================================");
         System.out.println("Username: " + currentUser.getUsername());
-        System.out.println("Password: " + currentUser.getPassword());
-        System.out.println("Email: " + currentUser.getEmail());
-        System.out.println("Balance: " + CurrencyUtil.toRupiahNumber(currentUser.getBalance()));
+        System.out.println("Balance: " + InputUtil.decimalFormat(currentUser.getBalance()));
         if (currentUser.isIs_active()) {
             System.out.println("Status: Active");
         } else {
             System.out.println("Status: Banned");
         }
+        List<Transaction> transactions = transactionService.findTransactionById(currentUser.getId());
+        List<Game> games = transactions.stream()
+                .map(transaction -> gameService.findGame(transaction.getGameId()))
+                .toList();
+        if (!transactions.isEmpty()) {
+            System.out.print("Games owned: ");
+            games.forEach(game -> System.out.print(game.getTitle() + " " + game.getGameType() + " VERSION\n"));
+        }
+        System.out.println("Member since: " + InputUtil.formatDate(currentUser.getCreated_at()));
         System.out.println("========================================================\n");
     }
 
@@ -161,5 +184,51 @@ public class CustomerView {
 
         System.out.println("Release date  : " + game.getRelease_date());
         System.out.println("========================================================\n");
+    }
+
+    public void displayUserTransactions(User currentUser) {
+        List<Transaction> transactions = transactionService.findTransactionById(currentUser.getId());
+
+        if (transactions.isEmpty()) {
+            System.out.println("No transaction history found.");
+            return;
+        }
+
+        ZoneId zoneId = ZoneId.of("Asia/Jakarta");
+        YearMonth currentMonth = YearMonth.now(zoneId);
+
+        Map<Boolean, List<Transaction>> partitioned = transactions.stream()
+                .collect(Collectors.partitioningBy(tx -> {
+                    YearMonth txMonth = YearMonth.from(tx.getTransactionDate().atZone(zoneId));
+                    return txMonth.equals(currentMonth);
+                }));
+
+        List<Transaction> thisMonthTransactions = partitioned.getOrDefault(true, List.of());
+        List<Transaction> olderTransactions = partitioned.getOrDefault(false, List.of());
+
+        if (thisMonthTransactions.isEmpty()) {
+            System.out.println("No transactions this month.");
+        } else {
+            System.out.println("\nThis Month =============================");
+            printTransactionList(thisMonthTransactions);
+        }
+
+        if (olderTransactions.isEmpty()) {
+            System.out.println("No older transactions.");
+        } else {
+            System.out.println("\nOther Months ===========================");
+            printTransactionList(olderTransactions);
+        }
+    }
+
+    private void printTransactionList(List<Transaction> list) {
+        for (Transaction tx : list) {
+            Game game = gameService.findGame(tx.getGameId());
+            String formattedDate = InputUtil.formatDate(tx.getTransactionDate());
+            String formattedPrice = InputUtil.decimalFormat(tx.getAmount());
+
+            System.out.printf("- %s | Rp %s | Date: %s%n",
+                    game.getTitle(), formattedPrice, formattedDate);
+        }
     }
 }
