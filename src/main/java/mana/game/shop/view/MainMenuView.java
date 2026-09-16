@@ -42,30 +42,29 @@ public class MainMenuView {
         }
     }
 
-    public void registerMenu(){
+    public void registerMenu() {
         System.out.println("REGISTER PAGE");
         String username = InputUtil.stringInput("Input your username: ");
         String password = InputUtil.stringInput("Input your password: ");
         String email = InputUtil.stringInput("Input your email: ");
-        int role = InputUtil.intInput("Select your role \n1. Admin\n2. Customer \nSelect: ");
-        UserRole userRole = null;
 
-        switch (role) {
-            case 1 -> userRole = UserRole.ADMIN;
-            case 2 -> userRole = UserRole.CUSTOMER;
-            default -> throw new IllegalArgumentException("Please input a valid number!");
+        if (username.isBlank() || password.isBlank() || email.isBlank()) {
+            System.err.println("Error: Username, Password, and Email cannot be empty!");
+            return;
         }
 
-        if (username.isBlank() || password.isBlank() || email.isBlank()){
-            throw new RuntimeException("Username, Password, and Email cannot set to Null!");
-        } else {
-            try {
-                User newUser = new User(username, password, email, userRole);
-                userService.addUser(newUser);
-                System.out.println("User with username: " + newUser.getUsername() + " successfully created!");
-            } catch (RuntimeException exception) {
-                throw new RuntimeException(exception);
+        try {
+            User newUser = new User(username, password, email, UserRole.CUSTOMER);
+            User createdUser = userService.addUser(newUser);
+
+            if (createdUser == null) {
+                System.err.println("Failed to create user. Please try again.");
+                return;
             }
+
+            System.out.println("User " + createdUser.getUsername() + " was successfully created!");
+        } catch (Exception e) {
+            System.err.println("Registration failed: " + e.getMessage());
         }
     }
 
@@ -76,15 +75,16 @@ public class MainMenuView {
 
         if (username.isBlank() || password.isBlank()){
             throw new RuntimeException("Please fill up username and password!");
+        }
+        User currentUser = userService.authenticate(username, password);
+        if (currentUser.getUsername().isBlank()){
+            throw new RuntimeException("Failed to login!");
+        } else if(currentUser.getUserRole().equals(UserRole.ADMIN)) {
+            AdminView adminView = new AdminView(userService, gameService, transactionService, currentUser);
+            adminView.showMenu();
         } else {
-            User currentUser = userService.authenticate(username, password);
-            if (currentUser.getUserRole().equals(UserRole.ADMIN)) {
-                AdminView adminView = new AdminView(userService, gameService, transactionService, currentUser);
-                adminView.showMenu();
-            } else {
-                CustomerView customerView = new CustomerView(userService, gameService, transactionService, currentUser);
-                customerView.showMenu();
-            }
+            CustomerView customerView = new CustomerView(userService, gameService, transactionService, currentUser);
+            customerView.showMenu();
         }
     }
 }
