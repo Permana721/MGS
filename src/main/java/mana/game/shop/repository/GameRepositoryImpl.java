@@ -1,10 +1,12 @@
 package mana.game.shop.repository;
 
 import mana.game.shop.entity.*;
+import mana.game.shop.util.DatabaseUtil;
 
 import javax.sql.DataSource;
 import java.sql.*;
 import java.sql.Date;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.StreamSupport;
@@ -117,11 +119,13 @@ public class GameRepositoryImpl implements GameRepository {
 
     @Override
     public boolean decreaseStock(Connection connection, int id, int stock) throws SQLException {
-        String sql = "UPDATE games SET stock = stock - ? WHERE id = ?";
+        String sql = "UPDATE games SET stock = stock - ?, updated_at = > WHERE id = ? AND stock >= ?";
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
             preparedStatement.setInt(1, stock);
-            preparedStatement.setInt(2, id);
+            preparedStatement.setTimestamp(2, Timestamp.from(Instant.now()));
+            preparedStatement.setInt(3, id);
+            preparedStatement.setInt(4, stock);
 
             int rowsUpdated = preparedStatement.executeUpdate();
             return rowsUpdated > 0;
@@ -144,6 +148,27 @@ public class GameRepositoryImpl implements GameRepository {
         } catch (SQLException exception) {
             throw new RuntimeException(exception);
         }
+    }
+
+    @Override
+    public List<Game> findByName(String keyword) {
+        String sql = "SELECT * FROM games WHERE title ILIKE ?";
+        List<Game> games = new ArrayList<>();
+
+        try (Connection connection = DatabaseUtil.getDataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, "%" + keyword.trim() + "%");
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    games.add(rowHelper(resultSet));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error searching games: " + e.getMessage(), e);
+        }
+
+        return games;
     }
 
     private Game rowHelper(ResultSet resultSet) throws SQLException {
