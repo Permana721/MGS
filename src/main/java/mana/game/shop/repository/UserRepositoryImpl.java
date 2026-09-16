@@ -3,8 +3,10 @@ package mana.game.shop.repository;
 import mana.game.shop.entity.User;
 import mana.game.shop.entity.UserRole;
 import mana.game.shop.util.DatabaseUtil;
+import mana.game.shop.util.PasswordUtil;
 
 import javax.sql.DataSource;
+import java.rmi.NoSuchObjectException;
 import java.sql.*;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -24,11 +26,12 @@ public class UserRepositoryImpl implements UserRepository {
                 INSERT INTO users(username, password, email, user_role, balance, created_at)
                 VALUES (?, ?, ?, ?::user_role_enum, ?, ?)
                 """;
+
         try(Connection connection = dataSource.getConnection()){
             PreparedStatement preparedStatement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-
+            String hashedPassword = PasswordUtil.hashPassword(user.getPassword());
             preparedStatement.setString(1, user.getUsername());
-            preparedStatement.setString(2, user.getPassword());
+            preparedStatement.setString(2, hashedPassword);
             preparedStatement.setString(3, user.getEmail());
             preparedStatement.setString(4, user.getUserRole().name());
             preparedStatement.setDouble(5, user.getBalance());
@@ -40,6 +43,8 @@ public class UserRepositoryImpl implements UserRepository {
                 if (resultSet.next()) {
                     user.setId(resultSet.getInt("id"));
                 }
+            } catch (RuntimeException exception) {
+                throw new RuntimeException(exception);
             }
         } catch (SQLException exception) {
             throw new RuntimeException(exception);
@@ -93,13 +98,14 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public boolean deductBalance(Connection connection, int id, double balance) throws SQLException {
-        String sql = "UPDATE users set balance = balance - ?, updated_at = ? WHERE id = ?";
+        String sql = "UPDATE users set balance = balance - ?, updated_at = ? WHERE id = ? AND balance >= ?";
 
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
         preparedStatement.setDouble(1, balance);
         preparedStatement.setTimestamp(2, Timestamp.from(Instant.now()));
         preparedStatement.setInt(3, id);
+        preparedStatement.setDouble(4, balance);
 
         int rowsUpdated = preparedStatement.executeUpdate();
         return rowsUpdated > 0;
@@ -155,22 +161,24 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public Optional<User> login(String username, String password) {
-        String sql = "SELECT * FROM users WHERE username = ? AND password = ?";
+        String sql = "SELECT * FROM users WHERE username = ?";
 
         try (Connection connection = dataSource.getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 
             preparedStatement.setString(1, username);
-            preparedStatement.setString(2, password);
 
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
                     User user = rowHelper(resultSet);
-                    return Optional.of(user);
+
+                    if (PasswordUtil.checkPassword(password, user.getPassword())) {
+                        return Optional.of(user);
+                    }
                 }
+
                 return Optional.empty();
             }
-
         } catch (SQLException exception) {
             throw new RuntimeException("Database error during login: " + exception.getMessage(), exception);
         }
