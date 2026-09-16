@@ -11,6 +11,7 @@ public interface GameService {
     Game updateGame(Game game);
     boolean deleteGame(int id);
     Game findGame(int id);
+    List<Game> findGamebyName(String name) throws SQLException;
     boolean decreaseGameStock(Connection connection, int id, int stock) throws SQLException;
     List<Game> findAllGame();
 }
