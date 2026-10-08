@@ -6,12 +6,10 @@ import mana.game.shop.util.DatabaseUtil;
 import javax.sql.DataSource;
 import java.sql.*;
 import java.sql.Date;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.StreamSupport;
 
-import static java.sql.Types.DOUBLE;
 import static java.sql.Types.INTEGER;
 
 public class GameRepositoryImpl implements GameRepository {
@@ -24,8 +22,10 @@ public class GameRepositoryImpl implements GameRepository {
     @Override
     public Game save(Game game) {
         String sql = """
-                   INSERT INTO games(title, category, price, game_type, stock, size, release_date) 
-                   VALUES (?, ?::game_category_enum, ?, ?::game_type_enum, ?, ?, ?)
+                   INSERT INTO games
+                   (title, category, price, game_type, stock, size, release_date) 
+                   VALUES 
+                   (?, ?::game_category_enum, ?, ?::game_type_enum, ?, ?, ?)
                    """;
 
         try(Connection connection = dataSource.getConnection()){
@@ -33,7 +33,7 @@ public class GameRepositoryImpl implements GameRepository {
 
             statement.setString(1, game.getTitle());
             statement.setString(2, game.getGameCategory().name());
-            statement.setDouble(3, game.getPrice());
+            statement.setBigDecimal(3, game.getPrice());
             statement.setString(4, game.getGameType().name());
             if (Objects.nonNull(game.getStock())) {
                 statement.setInt(5, game.getStock());
@@ -41,9 +41,9 @@ public class GameRepositoryImpl implements GameRepository {
                 statement.setNull(5, INTEGER);
             }
             if (Objects.nonNull(game.getSize())) {
-                statement.setDouble(6, game.getSize());
+                statement.setInt(6, game.getSize());
             } else {
-                statement.setNull(6, DOUBLE);
+                statement.setNull(6, INTEGER);
             }
             statement.setDate(7, Date.valueOf((LocalDate) game.getRelease_date()));
 
@@ -65,8 +65,14 @@ public class GameRepositoryImpl implements GameRepository {
     public Game update(Game game) {
         String sql = """
                  UPDATE games 
-                 SET title = ?, category = ?::game_category_enum, price = ?, 
-                     game_type = ?::game_type_enum, stock = ?, size = ?, release_date = ?
+                 SET title = ?, 
+                 category = ?::game_category, 
+                 price = ?, 
+                 game_type = ?::game_type, 
+                 stock = ?, 
+                 size = ?, 
+                 release_date = ?,
+                 updated_at = CURRENT_TIMESTAMP
                  WHERE id = ?
                  """;
 
@@ -75,7 +81,7 @@ public class GameRepositoryImpl implements GameRepository {
 
             statement.setString(1, game.getTitle());
             statement.setString(2, game.getGameCategory().name());
-            statement.setDouble(3, game.getPrice());
+            statement.setBigDecimal(3, game.getPrice());
             statement.setString(4, game.getGameType().name());
 
             if (Objects.nonNull(game.getStock())) {
@@ -85,9 +91,9 @@ public class GameRepositoryImpl implements GameRepository {
             }
 
             if (Objects.nonNull(game.getSize())) {
-                statement.setDouble(6, game.getSize());
+                statement.setInt(6, game.getSize());
             } else {
-                statement.setNull(6, Types.DOUBLE);
+                statement.setNull(6, Types.INTEGER);
             }
 
             statement.setDate(7, Date.valueOf(game.getRelease_date()));
@@ -95,13 +101,13 @@ public class GameRepositoryImpl implements GameRepository {
 
             int rowsAffected = statement.executeUpdate();
             if (rowsAffected == 0) {
-                throw new RuntimeException("Gagal update, game dengan ID " + game.getId() + " tidak ditemukan!");
+                throw new RuntimeException("Update failed, game with ID " + game.getId() + " not found!");
             }
 
             return game;
 
         } catch (SQLException exception) {
-            throw new RuntimeException("Gagal memperbarui game: " + exception.getMessage(), exception);
+            throw new RuntimeException("Failed to update the game: " + exception.getMessage(), exception);
         }
     }
 
@@ -119,16 +125,14 @@ public class GameRepositoryImpl implements GameRepository {
 
     @Override
     public boolean decreaseStock(Connection connection, int id, int stock) throws SQLException {
-        String sql = "UPDATE games SET stock = stock - ?, updated_at = > WHERE id = ? AND stock >= ?";
-            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+        String sql = "UPDATE games SET stock = stock - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+        PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
-            preparedStatement.setInt(1, stock);
-            preparedStatement.setTimestamp(2, Timestamp.from(Instant.now()));
-            preparedStatement.setInt(3, id);
-            preparedStatement.setInt(4, stock);
+        preparedStatement.setInt(1, stock);
+        preparedStatement.setInt(2, id);
 
-            int rowsUpdated = preparedStatement.executeUpdate();
-            return rowsUpdated > 0;
+        int rowsUpdated = preparedStatement.executeUpdate();
+        return rowsUpdated > 0;
     }
 
     @Override
@@ -183,9 +187,9 @@ public class GameRepositoryImpl implements GameRepository {
             digitalGame.setId(resultSet.getInt("id"));
             digitalGame.setTitle(resultSet.getString("title"));
             digitalGame.setGameCategory(gameCategory);
-            digitalGame.setPrice(resultSet.getDouble("price"));
+            digitalGame.setPrice(resultSet.getBigDecimal("price"));
             digitalGame.setGameType(gameType);
-            digitalGame.setSize(resultSet.getDouble("size"));
+            digitalGame.setSize(resultSet.getInt("size"));
             digitalGame.setRelease_date(releaseDate);
             return digitalGame;
         } else {
@@ -193,7 +197,7 @@ public class GameRepositoryImpl implements GameRepository {
             physicalGame.setId(resultSet.getInt("id"));
             physicalGame.setTitle(resultSet.getString("title"));
             physicalGame.setGameCategory(gameCategory);
-            physicalGame.setPrice(resultSet.getDouble("price"));
+            physicalGame.setPrice(resultSet.getBigDecimal("price"));
             physicalGame.setGameType(gameType);
             physicalGame.setStock(resultSet.getInt("stock"));
             physicalGame.setRelease_date(releaseDate);

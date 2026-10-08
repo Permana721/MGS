@@ -1,6 +1,6 @@
 package mana.game.shop.entity;
 
-import java.sql.Timestamp;
+import java.math.BigDecimal;
 import java.time.Instant;
 
 public class User {
@@ -9,7 +9,7 @@ public class User {
     private String password;
     private String email;
     private UserRole userRole;
-    private double balance;
+    private BigDecimal balance;
     private boolean is_active;
     private Instant created_at;
     private Instant updated_at;
@@ -66,11 +66,11 @@ public class User {
         this.userRole = userRole;
     }
 
-    public double getBalance() {
+    public BigDecimal getBalance() {
         return balance;
     }
 
-    public void setBalance(double balance) {
+    public void setBalance(BigDecimal balance) {
         this.balance = balance;
     }
 

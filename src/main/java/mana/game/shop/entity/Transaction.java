@@ -1,16 +1,16 @@
 package mana.game.shop.entity;
 
-import java.sql.Timestamp;
+import java.math.BigDecimal;
 import java.time.Instant;
 
 public class Transaction {
     private int id;
     private int userId;
     private int gameId;
-    private double amount;
+    private BigDecimal amount;
     private Instant transactionDate;
 
-    public Transaction(int userId, int gameId, double amount) {
+    public Transaction(int userId, int gameId, BigDecimal amount) {
         this.userId = userId;
         this.gameId = gameId;
         this.amount = amount;
@@ -44,11 +44,11 @@ public class Transaction {
         this.gameId = gameId;
     }
 
-    public double getAmount() {
+    public BigDecimal getAmount() {
         return amount;
     }
 
-    public void setAmount(double amount) {
+    public void setAmount(BigDecimal amount) {
         this.amount = amount;
     }
 

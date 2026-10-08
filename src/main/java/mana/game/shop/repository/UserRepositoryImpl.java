@@ -37,7 +37,7 @@ public class UserRepositoryImpl implements UserRepository {
             preparedStatement.setString(2, hashedPassword);
             preparedStatement.setString(3, user.getEmail());
             preparedStatement.setString(4, user.getUserRole().name());
-            preparedStatement.setDouble(5, user.getBalance());
+            preparedStatement.setBigDecimal(5, user.getBalance());
 
             preparedStatement.executeUpdate();
 
@@ -76,7 +76,7 @@ public class UserRepositoryImpl implements UserRepository {
             statement.setString(2, user.getPassword());
             statement.setString(3, user.getEmail());
             statement.setString(4, user.getUserRole().name());
-            statement.setBigDecimal(5, BigDecimal.valueOf(user.getBalance()));
+            statement.setBigDecimal(5, user.getBalance());
             statement.setBoolean(6, user.isIs_active());
             statement.setObject(7, OffsetDateTime.now(ZoneOffset.UTC));
             statement.setInt(8, user.getId());
@@ -90,14 +90,13 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public boolean topup(int id, double balance) {
-        String sql = "UPDATE users set balance = balance + ?, updated_at = ? WHERE id = ?";
+    public boolean topup(int id, BigDecimal balance) {
+        String sql = "UPDATE users set balance = balance + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
         try(Connection connection = dataSource.getConnection()){
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
-            preparedStatement.setDouble(1, balance);
-            preparedStatement.setTimestamp(2, Timestamp.from(Instant.now()));
-            preparedStatement.setInt(3, id);
+            preparedStatement.setBigDecimal(1, balance);
+            preparedStatement.setInt(2, id);
 
             int rowsUpdated = preparedStatement.executeUpdate();
             return rowsUpdated > 0;
@@ -107,15 +106,13 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public boolean deductBalance(Connection connection, int id, double balance) throws SQLException {
-        String sql = "UPDATE users set balance = balance - ?, updated_at = ? WHERE id = ? AND balance >= ?";
+    public boolean deductBalance(Connection connection, int id, BigDecimal balance) throws SQLException {
+        String sql = "UPDATE users set balance = balance - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
 
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
-        preparedStatement.setDouble(1, balance);
-        preparedStatement.setTimestamp(2, Timestamp.from(Instant.now()));
-        preparedStatement.setInt(3, id);
-        preparedStatement.setDouble(4, balance);
+        preparedStatement.setBigDecimal(1, balance);
+        preparedStatement.setInt(2, id);
 
         int rowsUpdated = preparedStatement.executeUpdate();
         return rowsUpdated > 0;
@@ -219,7 +216,7 @@ public class UserRepositoryImpl implements UserRepository {
         user.setPassword(resultSet.getString("password"));
         user.setEmail(resultSet.getString("email"));
         user.setUserRole(userRole);
-        user.setBalance(resultSet.getDouble("balance"));
+        user.setBalance(resultSet.getBigDecimal("balance"));
         user.setIs_active(resultSet.getBoolean("is_active"));
         user.setCreated_at(DatabaseUtil.getInstant(resultSet, "created_at"));
         user.setUpdated_at(DatabaseUtil.getInstant(resultSet, "updated_at"));

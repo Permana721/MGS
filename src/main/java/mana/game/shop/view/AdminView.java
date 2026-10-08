@@ -6,6 +6,7 @@ import mana.game.shop.service.TransactionService;
 import mana.game.shop.service.UserService;
 import mana.game.shop.util.InputUtil;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -62,12 +63,12 @@ public class AdminView {
     private void addGame() {
         GameCategory gameCategory = null;
         GameType gameType = null;
-        Double size = null;
+        Integer size = null;
         Integer stock = null;
         String title = InputUtil.stringInput("Input game title: ");
         int categoryInput = InputUtil.intInput("Select game category" +
                 "\n1. Action\n2. RPG\n3. Sports \n4. Strategy\n5. Adventure\nSelect: ");
-        double price = InputUtil.doubleInput("Input game price: ");
+        BigDecimal price = InputUtil.bigDecimalInput("Input game price: ");
         int typeInput = InputUtil.intInput("Select game type" +
                 "\n1. Digital\n2. Physical\nSelect: ");
         LocalDate dateInput = InputUtil.dateInput("Input release date with format yyyy-MM-dd: ");
@@ -84,7 +85,7 @@ public class AdminView {
         switch (typeInput) {
             case 1 -> {
                 gameType = GameType.DIGITAL;
-                size = InputUtil.doubleInput("Input game size in Mb: ");
+                size = InputUtil.intInput("Input game size in Mb: ");
             }
             case 2 -> {
                 gameType = GameType.PHYSICAL;
@@ -144,7 +145,7 @@ public class AdminView {
                 selectedGame.setGameCategory(GameCategory.valueOf(newCategory.toUpperCase()));
             }
             case 3 -> {
-                double newPrice = InputUtil.doubleInput("Input new price: ");
+                BigDecimal newPrice = InputUtil.bigDecimalInput("Input new price: ");
                 selectedGame.setPrice(newPrice);
             }
             case 4 -> {
@@ -152,7 +153,7 @@ public class AdminView {
                     int newStock = InputUtil.intInput("Input new stock: ");
                     selectedGame.setStock(newStock);
                 } else {
-                    double newSize = InputUtil.doubleInput("Input new size (MB): ");
+                    int newSize = InputUtil.intInput("Input new size (MB): ");
                     selectedGame.setSize(newSize);
                 }
             }

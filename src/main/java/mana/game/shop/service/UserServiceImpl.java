@@ -4,6 +4,7 @@ import mana.game.shop.entity.User;
 import mana.game.shop.entity.UserRole;
 import mana.game.shop.repository.UserRepository;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
@@ -65,7 +66,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public boolean addBalance(int id, double balance) {
+    public boolean addBalance(int id, BigDecimal balance) {
         User user = findUser(id);
         checkIsActive(user);
         checkBalance(balance);
@@ -74,12 +75,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public boolean decreaseBalance(Connection connection, int id, double balance) throws SQLException {
+    public boolean decreaseBalance(Connection connection, int id, BigDecimal balance) throws SQLException {
         User user = findUser(id);
         checkIsActive(user);
         checkBalance(balance);
 
-        if (user.getBalance() < balance) {
+        if (user.getBalance().compareTo(balance) <=  0) {
             throw new IllegalArgumentException("Inefficient Balance!");
         }
 
@@ -91,8 +92,8 @@ public class UserServiceImpl implements UserService {
         return userRepository.findAll();
     }
 
-    private void checkBalance(double balance) {
-        if (balance <= 0) {
+    private void checkBalance(BigDecimal balance) {
+        if (balance.compareTo(BigDecimal.ZERO) == 0) {
             throw new RuntimeException("The amount must be greater than 0!");
         }
     }

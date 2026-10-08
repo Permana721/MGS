@@ -9,6 +9,7 @@ import mana.game.shop.repository.TransactionRepository;
 import mana.game.shop.repository.UserRepository;
 import mana.game.shop.util.DatabaseUtil;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
@@ -33,14 +34,14 @@ public class TransactionServiceImpl implements TransactionService {
         try {
             connection = DatabaseUtil.getDataSource().getConnection();
             connection.setAutoCommit(false);
-            double userBalance = user.getBalance();
-            double gamePrice = game.getPrice();
+            BigDecimal userBalance = user.getBalance();
+            BigDecimal gamePrice = game.getPrice();
 
             if (game.getGameType().equals(GameType.PHYSICAL) && game.getStock() <= 0) {
                 throw new IllegalArgumentException("Physical copies of the game are out of stock!");
             } else if (game.getGameType().equals(GameType.DIGITAL) && transactionRepository.existsByUserIdAndGameId(userId, gameId)) {
                 throw new IllegalStateException("User already owns this digital game!");
-            } else if (gamePrice > userBalance) {
+            } else if (gamePrice.compareTo(userBalance) <= 0) {
                 throw new RuntimeException("User balance is insufficient");
             } else {
                 boolean deductBalanceResult = userRepository.deductBalance(connection, userId, game.getPrice());

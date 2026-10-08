@@ -9,6 +9,7 @@ import mana.game.shop.service.TransactionService;
 import mana.game.shop.service.UserService;
 import mana.game.shop.util.InputUtil;
 
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.YearMonth;
@@ -63,9 +64,9 @@ public class CustomerView {
     }
 
     private void topup() {
-        double addedSaldo = InputUtil.doubleInput("Input saldo: ");
-        if (addedSaldo <= 0) {
-            System.out.println("Nominal topup harus lebih dari 0!");
+        BigDecimal addedSaldo = InputUtil.bigDecimalInput("Input saldo: ");
+        if (addedSaldo.compareTo(BigDecimal.ZERO) == 0) {
+            System.out.println("The top-up amount must be greater than 0!");
             return;
         }
 

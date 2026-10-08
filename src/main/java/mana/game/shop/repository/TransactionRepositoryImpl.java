@@ -5,6 +5,7 @@ import mana.game.shop.entity.User;
 import mana.game.shop.util.DatabaseUtil;
 
 import javax.sql.DataSource;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -21,12 +22,12 @@ public class TransactionRepositoryImpl implements TransactionRepository {
     }
 
     @Override
-    public boolean saveTransaction(Connection connection, int userId, int gameId, double amount) throws SQLException {
+    public boolean saveTransaction(Connection connection, int userId, int gameId, BigDecimal amount) throws SQLException {
         String sql = "INSERT INTO transactions (user_id, game_id, amount) VALUES (?, ?, ?)";
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
         preparedStatement.setInt(1, userId);
         preparedStatement.setInt(2, gameId);
-        preparedStatement.setDouble(3, amount);
+        preparedStatement.setBigDecimal(3, amount);
         int rowsUpdated = preparedStatement.executeUpdate();
         return rowsUpdated > 0;
     }
@@ -82,7 +83,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
         transaction.setId(resultSet.getInt("id"));
         transaction.setUserId(resultSet.getInt("user_id"));
         transaction.setGameId(resultSet.getInt("game_id"));
-        transaction.setAmount(resultSet.getDouble("amount"));
+        transaction.setAmount(resultSet.getBigDecimal("amount"));
         transaction.setTransactionDate(DatabaseUtil.getInstant(resultSet, "transaction_date"));
         return transaction;
     }

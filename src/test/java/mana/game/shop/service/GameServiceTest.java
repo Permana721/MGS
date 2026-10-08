@@ -14,6 +14,7 @@ import org.junit.jupiter.api.condition.EnabledOnJre;
 import org.junit.jupiter.api.condition.JRE;
 import org.mockito.Mockito;
 
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.util.List;
 import java.util.Optional;
@@ -25,7 +26,7 @@ public class GameServiceTest {
     private PhysicalGame physicalGame;
     private GameService gameService;
 
-    private DigitalGame createDigitalGameMock(int id, String title, GameCategory gameCategory, double price, GameType gameType, double size) {
+    private DigitalGame createDigitalGameMock(int id, String title, GameCategory gameCategory, BigDecimal price, GameType gameType, int size) {
         DigitalGame digitalGame = new DigitalGame();
         digitalGame.setId(id);
         digitalGame.setTitle(title);
@@ -46,8 +47,8 @@ public class GameServiceTest {
     @EnabledOnJre(JRE.JAVA_21)
     @DisplayName("Add Game")
     void addGame() {
-        physicalGame = new PhysicalGame("Spiderman", GameCategory.ACTION, 700_000, GameType.PHYSICAL, 100, null, Date.valueOf("2024-01-21").toLocalDate());
-        digitalGame = new DigitalGame("Cyberpunk", GameCategory.ADVENTURE, 500_000, GameType.DIGITAL, null, 120_000, Date.valueOf("2022-02-25").toLocalDate());
+        physicalGame = new PhysicalGame("Spiderman", GameCategory.ACTION, BigDecimal.valueOf(700_000), GameType.PHYSICAL, 100, null, Date.valueOf("2024-01-21").toLocalDate());
+        digitalGame = new DigitalGame("Cyberpunk", GameCategory.ADVENTURE, BigDecimal.valueOf(500_000), GameType.DIGITAL, null, 120_000, Date.valueOf("2022-02-25").toLocalDate());
 
         Mockito.when(gameRepository.save(physicalGame))
                 .thenReturn(physicalGame);

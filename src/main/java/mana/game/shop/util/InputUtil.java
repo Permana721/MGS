@@ -1,5 +1,6 @@
 package mana.game.shop.util;
 
+import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -28,9 +29,9 @@ public class InputUtil {
         return value;
     }
 
-    public static double doubleInput(String info) {
+    public static BigDecimal bigDecimalInput(String info) {
         System.out.print(info + " ");
-        double value = scanner.nextDouble();
+        BigDecimal value = BigDecimal.valueOf(scanner.nextDouble());
         scanner.nextLine();
         return value;
     }
@@ -55,7 +56,7 @@ public class InputUtil {
         return DATE_FORMATTER.format(instant);
     }
 
-    public static String decimalFormat(double amount) {
+    public static String decimalFormat(BigDecimal amount) {
         Locale indonesia = new Locale("id", "ID");
         NumberFormat numberFormat = NumberFormat.getNumberInstance(indonesia);
         numberFormat.setMaximumFractionDigits(0);

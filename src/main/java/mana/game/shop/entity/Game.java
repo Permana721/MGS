@@ -1,21 +1,21 @@
 package mana.game.shop.entity;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.LocalDate;
-import java.util.Date;
 
 public abstract class Game {
     private int id;
     private String title;
     private GameCategory gameCategory;
-    private double price;
+    private BigDecimal price;
     private GameType gameType;
     private Integer stock;
-    private Double size;
+    private Integer size;
     private LocalDate release_date;
     private Timestamp created_at;
 
-    public Game(String title, GameCategory gameCategory, double price, GameType gameType, Integer stock, Double size, LocalDate release_date) {
+    public Game(String title, GameCategory gameCategory, BigDecimal price, GameType gameType, Integer stock, Integer size, LocalDate release_date) {
         this.title = title;
         this.gameCategory = gameCategory;
         this.price = price;
@@ -23,7 +23,6 @@ public abstract class Game {
         this.stock = stock;
         this.size = size;
         this.release_date = release_date;
-        this.created_at = new Timestamp(System.currentTimeMillis());
     }
 
     public Game() {
@@ -54,11 +53,11 @@ public abstract class Game {
         this.gameCategory = gameCategory;
     }
 
-    public double getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(double price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
 
@@ -78,11 +77,11 @@ public abstract class Game {
         this.stock = stock;
     }
 
-    public Double getSize() {
+    public Integer getSize() {
         return size;
     }
 
-    public void setSize(double size) {
+    public void setSize(int size) {
         this.size = size;
     }
 
@@ -101,5 +100,4 @@ public abstract class Game {
     public void setCreated_at(Timestamp created_at) {
         this.created_at = created_at;
     }
-
 }

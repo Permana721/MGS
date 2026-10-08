@@ -9,6 +9,7 @@ import org.junit.jupiter.api.condition.EnabledOnJre;
 import org.junit.jupiter.api.condition.JRE;
 import org.mockito.Mockito;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.ZoneId;
@@ -21,7 +22,7 @@ public class UserServiceTest {
     private UserRepository userRepository;
     private UserService userService;
 
-    private User createMockUser(int id, String username, UserRole role, double balance) {
+    private User createMockUser(int id, String username, UserRole role, BigDecimal balance) {
         User user = new User();
         user.setId(id);
         user.setUsername(username);
@@ -43,7 +44,7 @@ public class UserServiceTest {
     @EnabledOnJre(JRE.JAVA_21)
     @DisplayName("Add User")
     void testAddUser() {
-        User mockUser = createMockUser(1, "surya", UserRole.CUSTOMER, 10_000);
+        User mockUser = createMockUser(1, "surya", UserRole.CUSTOMER, BigDecimal.valueOf(10_000));
 
         Mockito.when(userRepository.save(mockUser))
                 .thenReturn(mockUser);
@@ -58,7 +59,7 @@ public class UserServiceTest {
     @EnabledOnJre(JRE.JAVA_21)
     @DisplayName("Find By Id")
     void findById() {
-        User mockUser = createMockUser(1, "surya", UserRole.CUSTOMER, 10_000);
+        User mockUser = createMockUser(1, "surya", UserRole.CUSTOMER, BigDecimal.valueOf(10_000));
 
         Mockito.when(userRepository.findById(mockUser.getId()))
                 .thenReturn(Optional.of(mockUser));
@@ -73,7 +74,7 @@ public class UserServiceTest {
     @EnabledOnJre(JRE.JAVA_21)
     @DisplayName("Delete User")
     void testDeleteUser() {
-        User mockUser = createMockUser(1, "surya", UserRole.CUSTOMER, 10_000);
+        User mockUser = createMockUser(1, "surya", UserRole.CUSTOMER, BigDecimal.valueOf(10_000));
 
         Mockito.when(userRepository.findById(mockUser.getId()))
                 .thenReturn(Optional.of(mockUser));
@@ -91,7 +92,7 @@ public class UserServiceTest {
     @EnabledOnJre(JRE.JAVA_21)
     @DisplayName("Edit User")
     void testEditUser() {
-        User mockUser = createMockUser(1, "surya", UserRole.CUSTOMER, 10_000);
+        User mockUser = createMockUser(1, "surya", UserRole.CUSTOMER, BigDecimal.valueOf(10_000));
 
         System.out.println(mockUser.getUsername());
 
@@ -115,31 +116,31 @@ public class UserServiceTest {
     @EnabledOnJre(JRE.JAVA_21)
     @DisplayName("Add Balance")
     void testAddBalance() {
-        User mockUser = createMockUser(1, "surya", UserRole.CUSTOMER, 10_000);
+        User mockUser = createMockUser(1, "surya", UserRole.CUSTOMER, BigDecimal.valueOf(10_000));
 
         Mockito.when(userRepository.findById(mockUser.getId()))
                 .thenReturn(Optional.of(mockUser));
 
-        boolean result = userService.addBalance(mockUser.getId(), 25_000);
+        boolean result = userService.addBalance(mockUser.getId(), BigDecimal.valueOf(25_000));
 
         Assertions.assertFalse(result);
-        Mockito.verify(userRepository).topup(mockUser.getId(), 25_000);
+        Mockito.verify(userRepository).topup(mockUser.getId(), BigDecimal.valueOf(25_000));
     }
 
     @Test
     @EnabledOnJre(JRE.JAVA_21)
     @DisplayName("Deduct Balance")
     void testDeductBalance() throws SQLException {
-        User mockUser = createMockUser(1, "surya", UserRole.CUSTOMER, 10_000);
+        User mockUser = createMockUser(1, "surya", UserRole.CUSTOMER, BigDecimal.valueOf(10_000));
         Connection connection = Mockito.mock(Connection.class);
 
         Mockito.when(userRepository.findById(mockUser.getId()))
                 .thenReturn(Optional.of(mockUser));
 
-        boolean result = userService.decreaseBalance(connection, mockUser.getId(), 5000);
+        boolean result = userService.decreaseBalance(connection, mockUser.getId(), BigDecimal.valueOf(5000));
 
         assertFalse(result);
-        Mockito.verify(userRepository).deductBalance(connection, mockUser.getId(), 5000);
+        Mockito.verify(userRepository).deductBalance(connection, mockUser.getId(), BigDecimal.valueOf(5000));
     }
 
     @Test
@@ -171,7 +172,7 @@ public class UserServiceTest {
     @EnabledOnJre(JRE.JAVA_21)
     @DisplayName("Login")
     void testLogin() {
-        User mockUser = createMockUser(1, "surya", UserRole.CUSTOMER, 10_000);
+        User mockUser = createMockUser(1, "surya", UserRole.CUSTOMER, BigDecimal.valueOf(10_000));
 
         Mockito.when(userRepository.login(mockUser.getUsername(), mockUser.getPassword()))
                 .thenReturn(Optional.of(mockUser));
