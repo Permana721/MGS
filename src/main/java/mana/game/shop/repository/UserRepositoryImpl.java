@@ -6,9 +6,12 @@ import mana.game.shop.util.DatabaseUtil;
 import mana.game.shop.util.PasswordUtil;
 
 import javax.sql.DataSource;
+import java.math.BigDecimal;
 import java.rmi.NoSuchObjectException;
 import java.sql.*;
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -23,8 +26,8 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public User save(User user) {
         String sql = """
-                INSERT INTO users(username, password, email, user_role, balance, created_at)
-                VALUES (?, ?, ?, ?::user_role_enum, ?, ?)
+                INSERT INTO users(username, password, email, role, balance)
+                VALUES (?, ?, ?, ?::user_role, ?1)
                 """;
 
         try(Connection connection = dataSource.getConnection()){
@@ -35,13 +38,14 @@ public class UserRepositoryImpl implements UserRepository {
             preparedStatement.setString(3, user.getEmail());
             preparedStatement.setString(4, user.getUserRole().name());
             preparedStatement.setDouble(5, user.getBalance());
-            preparedStatement.setTimestamp(6, Timestamp.from(Instant.now()));
 
             preparedStatement.executeUpdate();
 
             try(ResultSet resultSet = preparedStatement.getGeneratedKeys()){
                 if (resultSet.next()) {
                     user.setId(resultSet.getInt("id"));
+                    user.setCreated_at(resultSet.getObject("created_at", OffsetDateTime.class).toInstant());
+                    user.setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
                 }
             } catch (RuntimeException exception) {
                 throw new RuntimeException(exception);
@@ -55,9 +59,15 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public boolean update(User user) {
         String sql = """
-                 UPDATE users 
-                 SET username = ?, password = ?, email = ?, user_role = ?::user_role_enum, balance = ?, is_active = ?, updated_at = ?
-                 WHERE id = ?
+                UPDATE users
+                SET username = ?,
+                    password = ?,
+                    email = ?,
+                    role = ?::user_role,
+                    balance = ?,
+                    is_active = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
                  """;
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -66,9 +76,9 @@ public class UserRepositoryImpl implements UserRepository {
             statement.setString(2, user.getPassword());
             statement.setString(3, user.getEmail());
             statement.setString(4, user.getUserRole().name());
-            statement.setDouble(5, user.getBalance());
+            statement.setBigDecimal(5, BigDecimal.valueOf(user.getBalance()));
             statement.setBoolean(6, user.isIs_active());
-            statement.setTimestamp(7, Timestamp.from(Instant.now()));
+            statement.setObject(7, OffsetDateTime.now(ZoneOffset.UTC));
             statement.setInt(8, user.getId());
 
             int rowsAffected = statement.executeUpdate();
@@ -202,7 +212,7 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     private User rowHelper(ResultSet resultSet) throws SQLException {
-        UserRole userRole = UserRole.valueOf(resultSet.getString("user_role"));
+        UserRole userRole = UserRole.valueOf(resultSet.getString("role"));
         User user = new User();
         user.setId(resultSet.getInt("id"));
         user.setUsername(resultSet.getString("username"));
