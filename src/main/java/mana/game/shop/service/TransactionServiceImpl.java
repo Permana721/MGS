@@ -44,7 +44,7 @@ public class TransactionServiceImpl implements TransactionService {
             } else if (gamePrice.compareTo(userBalance) <= 0) {
                 throw new RuntimeException("User balance is insufficient");
             } else {
-                boolean deductBalanceResult = userRepository.deductBalance(connection, userId, game.getPrice());
+                boolean deductBalanceResult = userRepository.deductBalance(connection, user, game.getPrice());
                 if (!deductBalanceResult) {
                     throw new RuntimeException("Your balance is low please top up your balance first.");
                 }
