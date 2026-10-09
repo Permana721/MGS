@@ -26,48 +26,50 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public User save(User user) {
         String sql = """
-                INSERT INTO users(username, password, email, role)
-                VALUES (?, ?, ?, ?::user_role)
-                """;
+            INSERT INTO users(username, password, email, role)
+            VALUES (?, ?, ?, ?::user_role)
+            RETURNING id, balance, is_active, created_at, updated_at
+            """;
 
-        try(Connection connection = dataSource.getConnection()){
-            PreparedStatement preparedStatement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
             String hashedPassword = PasswordUtil.hashPassword(user.getPassword());
             preparedStatement.setString(1, user.getUsername());
             preparedStatement.setString(2, hashedPassword);
             preparedStatement.setString(3, user.getEmail());
             preparedStatement.setString(4, user.getUserRole().name());
 
-            preparedStatement.executeUpdate();
-
-            try(ResultSet resultSet = preparedStatement.getGeneratedKeys()){
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
                     user.setId(resultSet.getInt("id"));
+                    user.setBalance(resultSet.getBigDecimal("balance"));
+                    user.setIs_active(resultSet.getBoolean("is_active"));
                     user.setCreated_at(resultSet.getObject("created_at", OffsetDateTime.class).toInstant());
                     user.setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
                 }
-            } catch (RuntimeException exception) {
-                throw new RuntimeException(exception);
             }
+            return user;
         } catch (SQLException exception) {
-            throw new RuntimeException(exception);
+            throw new RuntimeException("Failed to save user: " + exception.getMessage(), exception);
         }
-        return user;
     }
 
     @Override
-    public boolean update(User user) {
+    public Optional<User> update(User user) {
         String sql = """
-                UPDATE users
-                SET username = ?,
-                    password = ?,
-                    email = ?,
-                    role = ?::user_role,
-                    balance = ?,
-                    is_active = ?,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-                 """;
+            UPDATE users
+            SET username = ?,
+                password = ?,
+                email = ?,
+                role = ?::user_role,
+                balance = ?,
+                is_active = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            RETURNING updated_at
+            """;
+
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
 
@@ -77,11 +79,15 @@ public class UserRepositoryImpl implements UserRepository {
             statement.setString(4, user.getUserRole().name());
             statement.setBigDecimal(5, user.getBalance());
             statement.setBoolean(6, user.isIs_active());
-            statement.setObject(7, OffsetDateTime.now(ZoneOffset.UTC));
-            statement.setInt(8, user.getId());
+            statement.setLong(7, user.getId());
 
-            int rowsAffected = statement.executeUpdate();
-            return rowsAffected > 0;
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    user.setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
+                    return Optional.of(user);
+                }
+            }
+            return Optional.empty();
 
         } catch (SQLException exception) {
             throw new RuntimeException("Database error: " + exception.getMessage(), exception);
@@ -191,19 +197,28 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public List<User> findAll() {
-        String sql = "SELECT * FROM users";
+    public List<User> findAll(UserRole role) {
+        if (role == null) {
+            throw new IllegalArgumentException("Role cannot be null!");
+        }
+
+        String sql = "SELECT * FROM users WHERE role = ?::user_role ORDER BY id ASC";
         List<User> users = new ArrayList<>();
-        try(Connection connection = dataSource.getConnection()){
-            PreparedStatement preparedStatement = connection.prepareStatement(sql);
-            ResultSet resultSet = preparedStatement.executeQuery();
-            while (resultSet.next()) {
-                User user = rowHelper(resultSet);
-                users.add(user);
+
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+            preparedStatement.setString(1, role.name());
+
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    User user = rowHelper(resultSet);
+                    users.add(user);
+                }
             }
             return users;
         } catch (SQLException exception) {
-            throw new RuntimeException(exception);
+            throw new RuntimeException("Error on databases: " + exception.getMessage(), exception);
         }
     }
 
