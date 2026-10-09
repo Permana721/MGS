@@ -9,8 +9,8 @@ public class User {
     private String password;
     private String email;
     private UserRole userRole;
-    private BigDecimal balance;
-    private boolean is_active;
+    private BigDecimal balance = BigDecimal.ZERO;
+    private boolean is_active = true;
     private Instant created_at;
     private Instant updated_at;
 
@@ -19,8 +19,6 @@ public class User {
         this.password = password;
         this.email = email;
         this.userRole = userRole;
-        this.is_active = true;
-        this.created_at = Instant.ofEpochMilli(System.currentTimeMillis());
     }
 
     public User() {
