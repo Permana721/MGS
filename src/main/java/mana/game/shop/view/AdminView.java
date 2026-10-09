@@ -290,7 +290,7 @@ public class AdminView {
         if (game.getGameType() == GameType.PHYSICAL) {
             System.out.println("Game stock    : " + game.getStock() + " unit");
         } else {
-            System.out.println("Game size     : " + game.getSize() + " MB");
+            System.out.println("Game size     : " + InputUtil.sizeInGB(game.getSize()) + " GB");
         }
 
         System.out.println("Release date  : " + game.getRelease_date());
