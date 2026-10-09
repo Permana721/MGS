@@ -17,6 +17,6 @@ public interface UserService {
     User findUser(int id);
     User authenticate(String username, String password);
     boolean addBalance(int id, BigDecimal balance);
-    boolean decreaseBalance(Connection connection, int id, BigDecimal balance) throws SQLException;
+    boolean decreaseBalance(Connection connection, User user, BigDecimal balance) throws SQLException;
     List<User> getAll(UserRole role);
 }
