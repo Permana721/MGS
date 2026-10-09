@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 public class UserServiceImpl implements UserService {
     UserRepository userRepository;
@@ -22,7 +23,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public boolean updateUser(User user) {
+    public Optional<User> updateUser(User user) {
         if (user.getUsername() == null || user.getUsername().trim().isEmpty()) {
             throw new IllegalArgumentException("Username cannot be empty!");
         }
@@ -88,8 +89,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<User> findAllUser() {
-        return userRepository.findAll();
+    public List<User> getAll(UserRole role) {
+        return userRepository.findAll(role);
     }
 
     private void checkBalance(BigDecimal balance) {
