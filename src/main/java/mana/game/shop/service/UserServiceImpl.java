@@ -76,8 +76,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public boolean decreaseBalance(Connection connection, int id, BigDecimal balance) throws SQLException {
-        User user = findUser(id);
+    public boolean decreaseBalance(Connection connection, User user, BigDecimal balance) throws SQLException {
         checkIsActive(user);
         checkBalance(balance);
 
@@ -85,7 +84,7 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Inefficient Balance!");
         }
 
-        return userRepository.deductBalance(connection, id, balance);
+        return userRepository.deductBalance(connection, user, balance);
     }
 
     @Override
