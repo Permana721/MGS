@@ -14,7 +14,7 @@ public interface UserRepository {
     Optional<User> update(User user);
     boolean topup(int id, BigDecimal balance);
     boolean bannedUser(int id, boolean is_active);
-    boolean deductBalance(Connection connection, int id, BigDecimal balance) throws SQLException;
+    boolean deductBalance(Connection connection, User user, BigDecimal balance) throws SQLException;
     boolean delete(int id);
     Optional<User> findById(int id);
     Optional<User> login(String username, String password);
