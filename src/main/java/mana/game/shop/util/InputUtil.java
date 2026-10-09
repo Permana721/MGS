@@ -69,4 +69,8 @@ public class InputUtil {
         numberFormat.setMaximumFractionDigits(0);
         return numberFormat.format(amount);
     }
+
+    public static int sizeInGB(int value) {
+        return  (int) Math.ceil((double) value / 1024.0);
+    }
 }
