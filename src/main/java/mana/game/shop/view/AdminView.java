@@ -37,7 +37,7 @@ public class AdminView {
             System.out.println("2. Edit game");
             System.out.println("3. Delete game");
             System.out.println("4. View all games");
-            System.out.println("5. View all users");
+            System.out.println("5. View all person");
             System.out.println("6. Ban/Unban user");
             System.out.println("7. Add Admin");
             System.out.println("0. Logout");
@@ -49,7 +49,7 @@ public class AdminView {
                 case "2" -> editGame();
                 case "3" -> deleteGame();
                 case "4" -> viewAllGames();
-                case "5" -> viewAllUsers();
+                case "5" -> viewAllPerson();
                 case "6" -> banUser();
                 case "7" -> addAdmin();
                 case "0" -> {
@@ -194,8 +194,19 @@ public class AdminView {
         }
     }
 
-    private void viewAllUsers() {
-        List<User> users = userService.findAllUser();
+    private void viewAllPerson() {
+        System.out.println("1. View All Admin\n2. View All Users");
+        int input = InputUtil.intInput("Select: ");
+        List<User> users = null;
+        switch (input) {
+            case 1 -> {
+                users = userService.getAll(UserRole.ADMIN);
+            }
+            case 2 -> {
+                users = userService.getAll(UserRole.CUSTOMER);
+            }
+            default -> System.err.println("Please input a valid number!");
+        }
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
                 .withZone(ZoneId.of("Asia/Jakarta"));
         if (users.isEmpty()) {
