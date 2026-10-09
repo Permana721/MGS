@@ -111,16 +111,28 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public boolean deductBalance(Connection connection, int id, BigDecimal balance) throws SQLException {
-        String sql = "UPDATE users set balance = balance - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+    public boolean deductBalance(Connection connection, User user, BigDecimal amount) throws SQLException {
+        String sql = """
+                UPDATE users 
+                set balance = balance - ?,
+                updated_at = CURRENT_TIMESTAMP 
+                WHERE id = ? AND balance >= ?
+                """;
 
-        PreparedStatement preparedStatement = connection.prepareStatement(sql);
+        try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
+            preparedStatement.setBigDecimal(1, amount);
+            preparedStatement.setInt(2, user.getId());
+            preparedStatement.setBigDecimal(3, amount);
 
-        preparedStatement.setBigDecimal(1, balance);
-        preparedStatement.setInt(2, id);
-
-        int rowsUpdated = preparedStatement.executeUpdate();
-        return rowsUpdated > 0;
+            try(ResultSet resultSet = preparedStatement.executeQuery()){
+                if (resultSet.next()) {
+                    user.setBalance(resultSet.getBigDecimal("balance"));
+                    user.setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Override
@@ -202,7 +214,7 @@ public class UserRepositoryImpl implements UserRepository {
             throw new IllegalArgumentException("Role cannot be null!");
         }
 
-        String sql = "SELECT * FROM users WHERE role = ?::user_role ORDER BY id ASC";
+        String sql = "SELECT * FROM users WHERE role = ?::user_role ORDER BY ";
         List<User> users = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection();
@@ -218,7 +230,7 @@ public class UserRepositoryImpl implements UserRepository {
             }
             return users;
         } catch (SQLException exception) {
-            throw new RuntimeException("Error on databases: " + exception.getMessage(), exception);
+            throw new RuntimeException("Error on database: " + exception.getMessage(), exception);
         }
     }
 
