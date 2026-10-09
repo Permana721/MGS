@@ -29,6 +29,13 @@ public class InputUtil {
         return value;
     }
 
+    public static double doubleInput(String info) {
+        System.out.print(info + " ");
+        double value = scanner.nextDouble();
+        scanner.nextLine();
+        return value;
+    }
+
     public static BigDecimal bigDecimalInput(String info) {
         System.out.print(info + " ");
         BigDecimal value = BigDecimal.valueOf(scanner.nextDouble());
