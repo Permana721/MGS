@@ -69,7 +69,7 @@ public class GameServiceTest {
     @EnabledOnJre(JRE.JAVA_21)
     @DisplayName("Find By Id")
     void findById() {
-        Game mockGame = createDigitalGameMock(1, "Cyberpunk", GameCategory.ADVENTURE, 500_000, GameType.DIGITAL, 120_000);
+        Game mockGame = createDigitalGameMock(1, "Cyberpunk", GameCategory.ADVENTURE, BigDecimal.valueOf(500_000), GameType.DIGITAL, 120_000);
 
         Mockito.when(gameRepository.findById(mockGame.getId()))
                 .thenReturn(Optional.of(mockGame));
@@ -84,7 +84,7 @@ public class GameServiceTest {
     @EnabledOnJre(JRE.JAVA_21)
     @DisplayName("Delete Game")
     void testDeleteGame() {
-        Game mockGame = createDigitalGameMock(1, "Cyberpunk", GameCategory.ADVENTURE, 500_000, GameType.DIGITAL, 120_000);
+        Game mockGame = createDigitalGameMock(1, "Cyberpunk", GameCategory.ADVENTURE, BigDecimal.valueOf(500_000), GameType.DIGITAL, 120_000);
 
         Mockito.when(gameRepository.findById(mockGame.getId()))
                 .thenReturn(Optional.of(mockGame));
@@ -102,8 +102,8 @@ public class GameServiceTest {
     @EnabledOnJre(JRE.JAVA_21)
     @DisplayName("Find All Games")
     void findAllGame() {
-        DigitalGame game1 = createDigitalGameMock(1, "Cyberpunk 2077", GameCategory.ADVENTURE, 500_000, GameType.DIGITAL, 120_000);
-        DigitalGame game2 = createDigitalGameMock(2, "The Witcher 3", GameCategory.RPG, 400_000, GameType.DIGITAL, 50_000);
+        DigitalGame game1 = createDigitalGameMock(1, "Cyberpunk 2077", GameCategory.ADVENTURE, BigDecimal.valueOf(500_000), GameType.DIGITAL, 120_000);
+        DigitalGame game2 = createDigitalGameMock(2, "The Witcher 3", GameCategory.RPG, BigDecimal.valueOf(400_000), GameType.DIGITAL, 50_000);
         List<Game> expectedGames = List.of(game1, game2);
 
         Mockito.when(gameRepository.findAll()).thenReturn(expectedGames);
@@ -119,7 +119,7 @@ public class GameServiceTest {
     @Test
     @DisplayName("Update Game")
     void updateGame() {
-        DigitalGame gameToUpdate = createDigitalGameMock(1, "Elden Ring Reforged", GameCategory.RPG, 750_000, GameType.DIGITAL, 60_000);
+        DigitalGame gameToUpdate = createDigitalGameMock(1, "Elden Ring Reforged", GameCategory.RPG, BigDecimal.valueOf(750_000), GameType.DIGITAL, 60_000);
 
         Mockito.when(gameRepository.update(gameToUpdate)).thenReturn(gameToUpdate);
 
@@ -135,7 +135,7 @@ public class GameServiceTest {
     @Test
     @DisplayName("Update Game - Failed / Not Found")
     void updateGameNotFound() {
-        DigitalGame nonExistentGame = createDigitalGameMock(99, "Unknown Game", GameCategory.ACTION, 100_000, GameType.DIGITAL, 10_000);
+        DigitalGame nonExistentGame = createDigitalGameMock(99, "Unknown Game", GameCategory.ACTION, BigDecimal.valueOf(100_000), GameType.DIGITAL, 10_000);
 
         Mockito.when(gameRepository.update(nonExistentGame)).thenThrow(new RuntimeException("Game not found"));
 
