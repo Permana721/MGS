@@ -37,6 +37,8 @@ CREATE TABLE games (
 
 CREATE INDEX idx_games_category ON games(category);
 CREATE INDEX idx_games_title ON games(title);
+
+COMMIT;
 -- END TABLE games
 
 -- CREATE TABLE users
@@ -58,6 +60,8 @@ CREATE TABLE users (
     
     CONSTRAINT chk_email_valid CHECK (email LIKE '%@%.com')
 );
+
+COMMIT;
 -- END TABLE users
 
 -- CREATE TABLE transactions
@@ -86,4 +90,6 @@ CREATE TABLE transactions (
 CREATE INDEX idx_transactions_user_id ON transactions(user_id);
 CREATE INDEX idx_transactions_game_id ON transactions(game_id);
 CREATE INDEX idx_transactions_created_at ON transactions(created_at DESC);
+
+COMMIT;
 -- END TABLE transactions
