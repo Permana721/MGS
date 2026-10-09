@@ -25,7 +25,7 @@ public class GameRepositoryImpl implements GameRepository {
                    INSERT INTO games
                    (title, category, price, game_type, stock, size, release_date) 
                    VALUES 
-                   (?, ?::game_category_enum, ?, ?::game_type_enum, ?, ?, ?)
+                   (?, ?::game_category, ?, ?::game_type, ?, ?, ?)
                    """;
 
         try(Connection connection = dataSource.getConnection()){
