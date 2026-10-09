@@ -26,8 +26,8 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public User save(User user) {
         String sql = """
-                INSERT INTO users(username, password, email, role, balance)
-                VALUES (?, ?, ?, ?::user_role, ?1)
+                INSERT INTO users(username, password, email, role)
+                VALUES (?, ?, ?, ?::user_role)
                 """;
 
         try(Connection connection = dataSource.getConnection()){
@@ -37,7 +37,6 @@ public class UserRepositoryImpl implements UserRepository {
             preparedStatement.setString(2, hashedPassword);
             preparedStatement.setString(3, user.getEmail());
             preparedStatement.setString(4, user.getUserRole().name());
-            preparedStatement.setBigDecimal(5, user.getBalance());
 
             preparedStatement.executeUpdate();
 
