@@ -23,7 +23,7 @@ public class GameRepositoryImpl implements GameRepository {
     public Game save(Game game) {
         String sql = """
                    INSERT INTO games
-                   (title, category, price, game_type, stock, size, release_date) 
+                   (title, category, price, type, stock, size_mb, release_date) 
                    VALUES 
                    (?, ?::game_category, ?, ?::game_type, ?, ?, ?)
                    """;
@@ -70,7 +70,7 @@ public class GameRepositoryImpl implements GameRepository {
                  price = ?, 
                  game_type = ?::game_type, 
                  stock = ?, 
-                 size = ?, 
+                 size_mb = ?, 
                  release_date = ?,
                  updated_at = CURRENT_TIMESTAMP
                  WHERE id = ?
@@ -176,7 +176,7 @@ public class GameRepositoryImpl implements GameRepository {
     }
 
     private Game rowHelper(ResultSet resultSet) throws SQLException {
-        GameType gameType = GameType.valueOf(resultSet.getString("game_type"));
+        GameType gameType = GameType.valueOf(resultSet.getString("type"));
         GameCategory gameCategory = GameCategory.valueOf(resultSet.getString("category"));
         LocalDate releaseDate = resultSet.getDate("release_date") != null
                 ? resultSet.getDate("release_date").toLocalDate()
@@ -189,7 +189,7 @@ public class GameRepositoryImpl implements GameRepository {
             digitalGame.setGameCategory(gameCategory);
             digitalGame.setPrice(resultSet.getBigDecimal("price"));
             digitalGame.setGameType(gameType);
-            digitalGame.setSize(resultSet.getInt("size"));
+            digitalGame.setSize(resultSet.getInt("size_mb"));
             digitalGame.setRelease_date(releaseDate);
             return digitalGame;
         } else {
