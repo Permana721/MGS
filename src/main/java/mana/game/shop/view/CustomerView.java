@@ -16,6 +16,7 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class CustomerView {
@@ -137,8 +138,8 @@ public class CustomerView {
         }
 
         try {
-            boolean updated = userService.updateUser(currentUser);
-            if (updated) {
+            Optional<User> updated = userService.updateUser(currentUser);
+            if (updated.isPresent()) {
                 System.out.println("Profile updated successfully!");
             } else {
                 System.out.println("Failed to update profile.");
