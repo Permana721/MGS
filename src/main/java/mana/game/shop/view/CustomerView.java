@@ -71,7 +71,7 @@ public class CustomerView {
             return;
         }
 
-        boolean result = userService.addBalance(currentUser.getId(), addedSaldo);
+        boolean result = transactionService.addBalance(currentUser.getId(), addedSaldo);
         if (result) {
             currentUser = userService.findUser(currentUser.getId());
 
