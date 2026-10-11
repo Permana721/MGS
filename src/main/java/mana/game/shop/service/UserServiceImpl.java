@@ -67,40 +67,15 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public boolean addBalance(int id, BigDecimal balance) {
-        User user = findUser(id);
-        checkIsActive(user);
-        checkBalance(balance);
-
-        return userRepository.topup(id, balance);
-    }
-
-    @Override
-    public boolean decreaseBalance(Connection connection, User user, BigDecimal balance) throws SQLException {
-        checkIsActive(user);
-        checkBalance(balance);
-
-        if (user.getBalance().compareTo(balance) <=  0) {
-            throw new IllegalArgumentException("Inefficient Balance!");
-        }
-
-        return userRepository.deductBalance(connection, user, balance);
-    }
-
-    @Override
     public List<User> getAll(UserRole role) {
         return userRepository.findAll(role);
     }
 
     private void checkBalance(BigDecimal balance) {
-        if (balance.compareTo(BigDecimal.ZERO) == 0) {
-            throw new RuntimeException("The amount must be greater than 0!");
-        }
+
     }
 
     private void checkIsActive(User user) {
-        if (!user.isIs_active()) {
-            throw new RuntimeException("User must be active! please contact admin for activate your account.");
-        }
+
     }
 }
