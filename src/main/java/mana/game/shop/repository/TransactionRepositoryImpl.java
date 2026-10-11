@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -23,7 +24,12 @@ public class TransactionRepositoryImpl implements TransactionRepository {
 
     @Override
     public boolean saveTransaction(Connection connection, int userId, int gameId, BigDecimal amount) throws SQLException {
-        String sql = "INSERT INTO transactions (user_id, game_id, amount) VALUES (?, ?, ?)";
+        String sql = """
+                INSERT INTO transactions 
+                (user_id, game_id, amount) 
+                VALUES 
+                (?, ?, ?)
+                """;
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
         preparedStatement.setInt(1, userId);
         preparedStatement.setInt(2, gameId);
@@ -33,8 +39,57 @@ public class TransactionRepositoryImpl implements TransactionRepository {
     }
 
     @Override
+    public boolean topup(int id, BigDecimal balance) {
+        String sql = """
+                UPDATE users 
+                set balance = balance + ?, 
+                updated_at = CURRENT_TIMESTAMP 
+                WHERE id = ?
+                """;
+        try(Connection connection = dataSource.getConnection()){
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+
+            preparedStatement.setBigDecimal(1, balance);
+            preparedStatement.setInt(2, id);
+
+            int rowsUpdated = preparedStatement.executeUpdate();
+            return rowsUpdated > 0;
+        } catch (SQLException exception) {
+            throw new RuntimeException(exception.getMessage(), exception);
+        }
+    }
+
+    @Override
+    public boolean deductBalance(Connection connection, User user, BigDecimal amount) throws SQLException {
+        String sql = """
+                UPDATE users 
+                set balance = balance - ?,
+                updated_at = CURRENT_TIMESTAMP 
+                WHERE id = ? AND balance >= ?
+                """;
+
+        try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
+            preparedStatement.setBigDecimal(1, amount);
+            preparedStatement.setInt(2, user.getId());
+            preparedStatement.setBigDecimal(3, amount);
+
+            try(ResultSet resultSet = preparedStatement.executeQuery()){
+                if (resultSet.next()) {
+                    user.setBalance(resultSet.getBigDecimal("balance"));
+                    user.setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    @Override
     public List<Transaction> findAllByUserId(int userId) {
-        String sql = "SELECT * FROM transactions WHERE user_id = ?";
+        String sql = """
+                SELECT * FROM transactions 
+                WHERE user_id = ?
+                """;
         List<Transaction> transactions = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection();
@@ -58,7 +113,12 @@ public class TransactionRepositoryImpl implements TransactionRepository {
 
     @Override
     public boolean existsByUserIdAndGameId(int userId, int gameId) {
-        String sql = "SELECT EXISTS (SELECT 1 FROM transactions WHERE user_id = ? AND game_id = ?)";
+        String sql = """
+                SELECT EXISTS 
+                (SELECT 1 FROM transactions 
+                WHERE user_id = ? 
+                AND game_id = ?)
+                """;
 
         try (Connection connection = dataSource.getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
