@@ -1,6 +1,7 @@
 package mana.game.shop.repository;
 
 import mana.game.shop.entity.*;
+import mana.game.shop.exception.ResourceNotFoundException;
 import mana.game.shop.util.DatabaseUtil;
 
 import javax.sql.DataSource;
@@ -219,7 +220,7 @@ public class GameRepositoryImpl implements GameRepository {
                     try {
                         return resultSet.next();
                     } catch (SQLException exception) {
-                        throw new RuntimeException(exception);
+                        throw new ResourceNotFoundException(exception.getMessage());
                     }
                 }
 
@@ -227,8 +228,8 @@ public class GameRepositoryImpl implements GameRepository {
                 public Game next() {
                     try {
                         return rowHelper(resultSet);
-                    } catch (SQLException e) {
-                        throw new RuntimeException(e);
+                    } catch (SQLException exception) {
+                        throw new ResourceNotFoundException(exception.getMessage());
                     }
                 }
             };
