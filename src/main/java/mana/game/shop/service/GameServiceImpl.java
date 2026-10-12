@@ -2,6 +2,8 @@ package mana.game.shop.service;
 
 import mana.game.shop.entity.Game;
 import mana.game.shop.entity.GameType;
+import mana.game.shop.exception.BusinessValidationException;
+import mana.game.shop.exception.ResourceNotFoundException;
 import mana.game.shop.repository.GameRepository;
 
 import java.sql.Connection;
@@ -36,16 +38,16 @@ public class GameServiceImpl implements GameService {
 
     @Override
     public boolean deleteGame(int id) {
-        if (id >= 0) {
+        Game game = findGame(id);
+        if (!game.getTitle().isBlank()) {
             return gameRepository.delete(id);
-        } else {
-            throw new RuntimeException("Please input a valid Id!");
         }
+        return false;
     }
 
     @Override
     public Game findGame(int id) {
-        return gameRepository.findById(id).orElseThrow(() -> new RuntimeException("Game with ID " + id + " not found!"));
+        return gameRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Game with ID " + id + " not found!"));
     }
 
     @Override
