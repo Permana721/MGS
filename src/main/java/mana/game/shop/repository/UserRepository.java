@@ -15,6 +15,6 @@ public interface UserRepository {
     boolean bannedUser(int id, boolean is_active);
     boolean delete(int id);
     Optional<User> findById(int id);
-    Optional<User> login(String username, String password);
+    Optional<User> login(String username);
     List<User> findAll(UserRole role);
 }
