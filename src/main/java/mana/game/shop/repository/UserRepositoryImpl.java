@@ -2,6 +2,9 @@ package mana.game.shop.repository;
 
 import mana.game.shop.entity.User;
 import mana.game.shop.entity.UserRole;
+import mana.game.shop.exception.AuthenticationException;
+import mana.game.shop.exception.BusinessValidationException;
+import mana.game.shop.exception.ResourceNotFoundException;
 import mana.game.shop.util.DatabaseUtil;
 import mana.game.shop.util.PasswordUtil;
 
@@ -96,15 +99,18 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public boolean delete(int id) {
-        String sql = "DELETE FROM users WHERE id = ?";
+        String sql = """
+                DELETE FROM users 
+                WHERE id = ?
+                """;
         try(Connection connection = dataSource.getConnection()){
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
             preparedStatement.setInt(1, id);
 
-            int changeRow = preparedStatement.executeUpdate();
-            return changeRow > 0;
+            int changedRow = preparedStatement.executeUpdate();
+            return changedRow > 0;
         } catch (SQLException exception) {
-            throw new RuntimeException(exception);
+            throw new ResourceNotFoundException(exception.getMessage());
         }
     }
 
@@ -143,7 +149,7 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public Optional<User> login(String username, String password) {
+    public Optional<User> login(String username) {
         String sql = "SELECT * FROM users WHERE username = ?";
 
         try (Connection connection = dataSource.getConnection();
@@ -153,27 +159,17 @@ public class UserRepositoryImpl implements UserRepository {
 
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
-                    User user = rowHelper(resultSet);
-
-                    if (PasswordUtil.checkPassword(password, user.getPassword())) {
-                        return Optional.of(user);
-                    }
+                    return Optional.of(rowHelper(resultSet));
                 }
-
                 return Optional.empty();
             }
         } catch (SQLException exception) {
-            throw new RuntimeException("Database error during login: " + exception.getMessage(), exception);
+            throw new RuntimeException("Database error: " + exception.getMessage(), exception);
         }
     }
-
     @Override
     public List<User> findAll(UserRole role) {
-        if (role == null) {
-            throw new IllegalArgumentException("Role cannot be null!");
-        }
-
-        String sql = "SELECT * FROM users WHERE role = ?::user_role ORDER BY ";
+        String sql = "SELECT * FROM users WHERE role = ?::user_role ORDER BY id";
         List<User> users = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection();
@@ -183,13 +179,14 @@ public class UserRepositoryImpl implements UserRepository {
 
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 while (resultSet.next()) {
-                    User user = rowHelper(resultSet);
-                    users.add(user);
+                    users.add(rowHelper(resultSet));
                 }
             }
+
             return users;
+
         } catch (SQLException exception) {
-            throw new RuntimeException("Error on database: " + exception.getMessage(), exception);
+            throw new ResourceNotFoundException("Database error while fetching users by role: " + exception.getMessage());
         }
     }
 
