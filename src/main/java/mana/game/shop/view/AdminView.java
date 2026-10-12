@@ -1,9 +1,13 @@
 package mana.game.shop.view;
 
 import mana.game.shop.entity.*;
+import mana.game.shop.exception.BusinessException;
+import mana.game.shop.exception.BusinessValidationException;
+import mana.game.shop.exception.ResourceNotFoundException;
 import mana.game.shop.service.GameService;
 import mana.game.shop.service.TransactionService;
 import mana.game.shop.service.UserService;
+import mana.game.shop.util.ColorUtil;
 import mana.game.shop.util.InputUtil;
 
 import java.math.BigDecimal;
@@ -17,12 +21,10 @@ import java.util.Objects;
 public class AdminView {
     private UserService userService;
     private GameService gameService;
-    private TransactionService transactionService;
     private final User currentUser;
 
-    public AdminView(UserService userService, GameService gameService,  TransactionService transactionService, User currentUser) {
+    public AdminView(UserService userService, GameService gameService,  User currentUser) {
         this.currentUser = currentUser;
-        this.transactionService = transactionService;
         this.gameService = gameService;
         this.userService = userService;
     }
@@ -55,7 +57,7 @@ public class AdminView {
                 case "0" -> {
                     return;
                 }
-                default -> throw new IllegalArgumentException("Please input a valid number!");
+                default -> ColorUtil.printError("Please input a valid number!");
             }
         }
     }
@@ -79,7 +81,7 @@ public class AdminView {
             case 3 -> gameCategory = GameCategory.SPORTS;
             case 4 -> gameCategory = GameCategory.STRATEGY;
             case 5 -> gameCategory = GameCategory.ADVENTURE;
-            default -> throw new IllegalArgumentException("Please input a valid number!");
+            default -> ColorUtil.printError("Please input a valid number!");
         }
 
         switch (typeInput) {
@@ -91,113 +93,135 @@ public class AdminView {
                 gameType = GameType.PHYSICAL;
                 stock = InputUtil.intInput("Input game stock: ");
             }
-            default -> throw new IllegalArgumentException("Please input a valid number!");
+            default -> ColorUtil.printError("Please input a valid number!");
         }
 
+        assert gameType != null;
         if (gameType.equals(GameType.PHYSICAL)) {
             PhysicalGame physicalGame = new PhysicalGame(title, gameCategory, price, gameType, stock, null, dateInput);
-            Game addedGame = gameService.addGame(physicalGame);
-            if (Objects.nonNull(addedGame)) {
-                System.out.println("Success added game: " + addedGame.getTitle());
-            } else {
-                throw new RuntimeException("The game could not be added");
+            try {
+                Game addedGame = gameService.addGame(physicalGame);
+                if (Objects.nonNull(addedGame)) {
+                    ColorUtil.printSuccess("Success added game: " + addedGame.getTitle());
+                } else {
+                    ColorUtil.printError("Failed to add a game");
+                }
+            } catch (BusinessValidationException exception) {
+                ColorUtil.printError("Failed to add a game: " + exception.getMessage());
+            } catch (Exception exception) {
+                ColorUtil.printError("System error occurred. Please try again later!");
             }
         } else {
             DigitalGame digitalGame = new DigitalGame(title, gameCategory, price, gameType, null, size, dateInput);
-            Game addedGame = gameService.addGame(digitalGame);
-            if (Objects.nonNull(addedGame)) {
-                System.out.println("Success added game: " + addedGame.getTitle());
-            } else {
-                throw new RuntimeException("The game could not be added");
+            try {
+                Game addedGame = gameService.addGame(digitalGame);
+                if (Objects.nonNull(addedGame)) {
+                    ColorUtil.printSuccess("Success added game: " + addedGame.getTitle());
+                } else {
+                    ColorUtil.printError("Failed to add a game");
+                }
+            } catch (BusinessValidationException exception) {
+                ColorUtil.printError("Failed to add a game: " + exception.getMessage());
+            } catch (Exception exception) {
+                ColorUtil.printError("System error occurred. Please try again later!");
             }
         }
     }
 
     private void editGame() {
         int gameId = InputUtil.intInput("Input game Id want to edit: ");
-        Game selectedGame = gameService.findGame(gameId);
+        try {
+            Game selectedGame = gameService.findGame(gameId);
 
-        if (selectedGame == null) {
-            System.out.println("Game not found!");
-            return;
-        }
+            boolean isPhysical = selectedGame.getGameType().equals(GameType.PHYSICAL);
 
-        boolean isPhysical = selectedGame.getGameType().equals(GameType.PHYSICAL);
+            System.out.println("\nSelected game: " + selectedGame.getTitle());
+            System.out.println("Which section would you like to edit?");
+            System.out.println("1. Edit game title");
+            System.out.println("2. Edit game category");
+            System.out.println("3. Edit game price");
+            System.out.println("4. " + (isPhysical ? "Edit game stock" : "Edit game size"));
+            System.out.println("5. Edit game release date");
+            System.out.println("0. Cancel");
 
-        System.out.println("\nSelected game: " + selectedGame.getTitle());
-        System.out.println("Which section would you like to edit?");
-        System.out.println("1. Edit game title");
-        System.out.println("2. Edit game category");
-        System.out.println("3. Edit game price");
-        System.out.println("4. " + (isPhysical ? "Edit game stock" : "Edit game size"));
-        System.out.println("5. Edit game release date");
-        System.out.println("0. Cancel");
+            int input = InputUtil.intInput("Select: ");
 
-        int input = InputUtil.intInput("Select: ");
-
-        switch (input) {
-            case 1 -> {
-                String newTitle = InputUtil.stringInput("Input new title: ");
-                selectedGame.setTitle(newTitle);
-            }
-            case 2 -> {
-                String newCategory = InputUtil.stringInput("Input new category: ");
-                selectedGame.setGameCategory(GameCategory.valueOf(newCategory.toUpperCase()));
-            }
-            case 3 -> {
-                BigDecimal newPrice = InputUtil.bigDecimalInput("Input new price: ");
-                selectedGame.setPrice(newPrice);
-            }
-            case 4 -> {
-                if (isPhysical) {
-                    int newStock = InputUtil.intInput("Input new stock: ");
-                    selectedGame.setStock(newStock);
-                } else {
-                    int newSize = InputUtil.intInput("Input new size (MB): ");
-                    selectedGame.setSize(newSize);
+            switch (input) {
+                case 1 -> {
+                    String newTitle = InputUtil.stringInput("Input new title: ");
+                    selectedGame.setTitle(newTitle);
+                }
+                case 2 -> {
+                    String newCategory = InputUtil.stringInput("Input new category: ");
+                    selectedGame.setGameCategory(GameCategory.valueOf(newCategory.toUpperCase()));
+                }
+                case 3 -> {
+                    BigDecimal newPrice = InputUtil.bigDecimalInput("Input new price: ");
+                    selectedGame.setPrice(newPrice);
+                }
+                case 4 -> {
+                    if (isPhysical) {
+                        int newStock = InputUtil.intInput("Input new stock: ");
+                        selectedGame.setStock(newStock);
+                    } else {
+                        int newSize = InputUtil.intInput("Input new size (MB): ");
+                        selectedGame.setSize(newSize);
+                    }
+                }
+                case 5 -> {
+                    LocalDate newDate = InputUtil.dateInput("Input new release date");
+                    selectedGame.setRelease_date(newDate);
+                }
+                case 0 -> {
+                    ColorUtil.printError("Update cancelled.");
+                    return;
+                }
+                default -> {
+                    ColorUtil.printError("Invalid option!");
+                    return;
                 }
             }
-            case 5 -> {
-                LocalDate newDate = InputUtil.dateInput("Input new release date");
-                selectedGame.setRelease_date(newDate);
-            }
-            case 0 -> {
-                System.err.println("Update cancelled.");
-                return;
-            }
-            default -> {
-                System.err.println("Invalid option!");
-                return;
-            }
-        }
 
-        gameService.updateGame(selectedGame);
-        System.out.println("Game " + selectedGame.getTitle() +  " successfully updated!");
+            gameService.updateGame(selectedGame);
+
+            ColorUtil.printSuccess("Game " + selectedGame.getTitle() +  " successfully updated!");
+        } catch (ResourceNotFoundException exception) {
+            ColorUtil.printError(exception.getMessage());
+        }
     }
 
     private void deleteGame() {
         int id = InputUtil.intInput("Enter the game ID you want to delete: ");
-        boolean result = gameService.deleteGame(id);
-        if (result) {
-            System.out.println("Game with Id " + id + " was deleted!");
+        try {
+            boolean result = gameService.deleteGame(id);
+            if (result) {
+                ColorUtil.printSuccess("Game with Id " + id + " was deleted!");
+            }
+        } catch (ResourceNotFoundException exception) {
+            ColorUtil.printError(exception.getMessage());
+        } catch (Exception exception) {
+            ColorUtil.printError("System error occurred. Please try again later!");
         }
     }
 
     private void viewAllGames() {
-        List<Game> games = gameService.findAllGame();
-        if (games.isEmpty()) {
-            throw new IllegalArgumentException("There are no games!");
-        } else {
+        try {
+            List<Game> games = gameService.findAllGame();
             for (Game game : games) {
                 viewGame(game);
             }
+        } catch (ResourceNotFoundException exception) {
+            ColorUtil.printError("No game data: " + exception.getMessage());
+        } catch (Exception exception) {
+            ColorUtil.printError("System error occurred. Please try again later!");
         }
     }
 
     private void viewAllPerson() {
         System.out.println("1. View All Admin\n2. View All Users");
-        int input = InputUtil.intInput("Select: ");
         List<User> users = null;
+
+        int input = InputUtil.intInput("Select: ");
         switch (input) {
             case 1 -> {
                 users = userService.getAll(UserRole.ADMIN);
@@ -205,12 +229,15 @@ public class AdminView {
             case 2 -> {
                 users = userService.getAll(UserRole.CUSTOMER);
             }
-            default -> System.err.println("Please input a valid number!");
+            default -> ColorUtil.printError("Please input a valid number!");
         }
+
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
                 .withZone(ZoneId.of("Asia/Jakarta"));
+
+        assert users != null;
         if (users.isEmpty()) {
-            throw new IllegalArgumentException("There are no users!");
+            ColorUtil.printError("There are no users!");
         } else {
             users.stream()
                     .sorted(Comparator.comparingInt(User::getId))
@@ -236,30 +263,37 @@ public class AdminView {
                         System.out.println("Updated At: " + updatedAt);
                         System.out.println("Created At: " + createdAt);
                         System.out.println("========================================================\n");
-
                     });
         }
     }
 
     private void banUser() {
         int id = InputUtil.intInput("Enter the ID user: ");
-        User user = userService.findUser(id);
-        if (!user.isIs_active()) {
-            System.out.println("Current user status is: BANNED, and try to change into ACTIVE...");
-            boolean activeUser = userService.banUser(id, currentUser.getId(), Boolean.TRUE);
-            if (activeUser) {
-                System.out.println("User with Id " + id + " was successfully active!");
+        try {
+            User user = userService.findUser(id);
+            if (!user.isIs_active()) {
+                System.out.println("Current user status is: BANNED, and try to change into ACTIVE...");
+                try {
+                    boolean activeUser = userService.banUser(id, currentUser.getId(), Boolean.TRUE);
+                    if (activeUser) {
+                        ColorUtil.printSuccess("User with Id " + id + " was successfully active!");
+                    }
+                } catch (BusinessException exception) {
+                    ColorUtil.printError(exception.getMessage());
+                }
             } else {
-                throw new RuntimeException("Update failed!");
+                System.out.println("Current user status is: ACTIVE, and try to change into BANNED...");
+                try {
+                    boolean bannedUser = userService.banUser(id, currentUser.getId(), Boolean.FALSE);
+                    if (bannedUser) {
+                        ColorUtil.printSuccess("User with Id " + id + " was successfully banned!");
+                    }
+                } catch (BusinessException exception) {
+                    ColorUtil.printError(exception.getMessage());
+                }
             }
-        } else {
-            System.out.println("Current user status is: ACTIVE, and try to change into BANNED...");
-            boolean bannedUser = userService.banUser(id, currentUser.getId(), Boolean.FALSE);
-            if (bannedUser) {
-                System.out.println("User with Id " + id + " was successfully banned!");
-            } else {
-                throw new RuntimeException("Update failed!");
-            }
+        } catch (ResourceNotFoundException exception) {
+            ColorUtil.printError(exception.getMessage());
         }
     }
 
