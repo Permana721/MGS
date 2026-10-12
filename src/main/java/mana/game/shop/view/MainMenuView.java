@@ -2,9 +2,11 @@ package mana.game.shop.view;
 
 import mana.game.shop.entity.User;
 import mana.game.shop.entity.UserRole;
+import mana.game.shop.exception.AuthenticationException;
 import mana.game.shop.service.GameService;
 import mana.game.shop.service.TransactionService;
 import mana.game.shop.service.UserService;
+import mana.game.shop.util.ColorUtil;
 import mana.game.shop.util.InputUtil;
 
 import java.sql.SQLException;
@@ -20,7 +22,7 @@ public class MainMenuView {
         this.transactionService = transactionService;
     }
 
-    public void showMainMenu() throws SQLException {
+    public void showMainMenu() {
         while (true) {
             System.out.println("==================================");
             System.out.println("Welcome to Mana Gameshop!");
@@ -37,7 +39,7 @@ public class MainMenuView {
                 case 0 -> {
                     return;
                 }
-                default -> throw new IllegalArgumentException("Please input a valid number!");
+                default -> ColorUtil.printError("Please input a valid number!");
             }
         }
     }
@@ -49,7 +51,7 @@ public class MainMenuView {
         String email = InputUtil.stringInput("Input your email: ");
 
         if (username.isBlank() || password.isBlank() || email.isBlank()) {
-            System.err.println("Error: Username, Password, and Email cannot be empty!");
+            ColorUtil.printError("Error: Username, Password, and Email cannot be empty!");
             return;
         }
 
@@ -58,33 +60,41 @@ public class MainMenuView {
             User createdUser = userService.addUser(newUser);
 
             if (createdUser == null) {
-                System.err.println("Failed to create user. Please try again.");
+                ColorUtil.printError("Failed to create user. Please try again.");
                 return;
             }
 
-            System.out.println("User " + createdUser.getUsername() + " was successfully created!");
-        } catch (Exception e) {
-            System.err.println("Registration failed: " + e.getMessage());
+            ColorUtil.printSuccess("User " + createdUser.getUsername() + " was successfully created!");
+        } catch (AuthenticationException exception) {
+            ColorUtil.printError("Registration failed: " + exception.getMessage());
+        } catch (Exception exception) {
+            ColorUtil.printError("System error occurred. Please try again later!");
         }
     }
 
-    public void loginMenu() throws SQLException {
+    public void loginMenu() {
         System.out.println("LOGIN PAGE");
         String username = InputUtil.stringInput("Input your username: ");
         String password = InputUtil.stringInput("Input your password: ");
 
         if (username.isBlank() || password.isBlank()){
-            throw new RuntimeException("Please fill up username and password!");
+            ColorUtil.printError("Please fill up username and password!");
         }
-        User currentUser = userService.authenticate(username, password);
-        if (currentUser.getUsername().isBlank()){
-            throw new RuntimeException("Failed to login!");
-        } else if(currentUser.getUserRole().equals(UserRole.ADMIN)) {
-            AdminView adminView = new AdminView(userService, gameService, transactionService, currentUser);
-            adminView.showMenu();
-        } else {
-            CustomerView customerView = new CustomerView(userService, gameService, transactionService, currentUser);
-            customerView.showMenu();
+
+        try {
+            User currentUser = userService.authenticate(username, password);
+
+            if(currentUser.getUserRole().equals(UserRole.ADMIN)) {
+                AdminView adminView = new AdminView(userService, gameService, currentUser);
+                adminView.showMenu();
+            } else {
+                CustomerView customerView = new CustomerView(userService, gameService, transactionService, currentUser);
+                customerView.showMenu();
+            }
+        } catch (AuthenticationException exception) {
+            ColorUtil.printError("Login failed: " + exception.getMessage());
+        } catch (Exception exception) {
+            ColorUtil.printError("System error occurred. Please try again later!");
         }
     }
 }
