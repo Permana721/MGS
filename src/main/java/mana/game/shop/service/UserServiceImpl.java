@@ -2,7 +2,12 @@ package mana.game.shop.service;
 
 import mana.game.shop.entity.User;
 import mana.game.shop.entity.UserRole;
+import mana.game.shop.exception.AuthenticationException;
+import mana.game.shop.exception.BusinessValidationException;
+import mana.game.shop.exception.ResourceNotFoundException;
 import mana.game.shop.repository.UserRepository;
+import mana.game.shop.util.InputUtil;
+import mana.game.shop.util.PasswordUtil;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -43,13 +48,14 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean banUser(int adminId, int userId, boolean is_active) {
         if (adminId == userId) {
-            throw new IllegalArgumentException("Cannot ban yourself!");
+            throw new BusinessValidationException("Cannot ban yourself!");
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User with Id " + userId + " not found!"));
+                .orElseThrow(() -> new ResourceNotFoundException("User with Id " + userId + " not found!"));
+
         if (user.getUserRole().equals(UserRole.ADMIN)) {
-            throw new IllegalArgumentException("Cannot ban admin!");
+            throw new BusinessValidationException("Cannot ban admin!");
         }
         return userRepository.bannedUser(userId, is_active);
     }
@@ -57,25 +63,30 @@ public class UserServiceImpl implements UserService {
     @Override
     public User findUser(int id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User with Id " + id + " not found!"));
+                .orElseThrow(() -> new ResourceNotFoundException("User with Id " + id + " not found!"));
     }
 
     @Override
     public User authenticate(String username, String password) {
-        return userRepository.login(username, password)
-                .orElseThrow(() -> new RuntimeException("Username or password is wrong!"));
+        User user = userRepository.login(username)
+                .orElseThrow(() -> new AuthenticationException("Username or password is wrong!"));
+
+        if (!PasswordUtil.checkPassword(password, user.getPassword())) {
+            throw new AuthenticationException("Username or password is wrong!");
+        }
+
+        if (!user.isIs_active()) {
+            throw new AuthenticationException("Your account is deactivated. Please contact admin for activate your account!");
+        }
+
+        return user;
     }
 
     @Override
     public List<User> getAll(UserRole role) {
+        if (role == null) {
+            throw new BusinessValidationException("Role cannot be null!");
+        }
         return userRepository.findAll(role);
-    }
-
-    private void checkBalance(BigDecimal balance) {
-
-    }
-
-    private void checkIsActive(User user) {
-
     }
 }
