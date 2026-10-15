@@ -254,7 +254,7 @@ public class AdminView {
                         System.out.println("Password: " + user.getPassword());
                         System.out.println("Email: " + user.getEmail());
                         System.out.println("Role: " + user.getUserRole());
-                        System.out.println("Balance: " + InputUtil.decimalFormat(user.getBalance()));
+                        System.out.println("Balance: " + "Rp. " + InputUtil.decimalFormat(user.getBalance()));
                         if (user.isIs_active()) {
                             System.out.println("Status: Active");
                         } else {
@@ -274,9 +274,11 @@ public class AdminView {
             if (!user.isIs_active()) {
                 System.out.println("Current user status is: BANNED, and try to change into ACTIVE...");
                 try {
-                    boolean activeUser = userService.banUser(id, currentUser.getId(), Boolean.TRUE);
-                    if (activeUser) {
+                    User activeUser = userService.banUser(currentUser.getId(), id, Boolean.TRUE);
+                    if (activeUser.isIs_active()) {
                         ColorUtil.printSuccess("User with Id " + id + " was successfully active!");
+                    } else {
+                        ColorUtil.printError("Failed to banned user, Please try again");
                     }
                 } catch (BusinessException exception) {
                     ColorUtil.printError(exception.getMessage());
@@ -284,15 +286,17 @@ public class AdminView {
             } else {
                 System.out.println("Current user status is: ACTIVE, and try to change into BANNED...");
                 try {
-                    boolean bannedUser = userService.banUser(id, currentUser.getId(), Boolean.FALSE);
-                    if (bannedUser) {
+                    User bannedUser = userService.banUser(currentUser.getId(), id, Boolean.FALSE);
+                    if (!bannedUser.isIs_active()) {
                         ColorUtil.printSuccess("User with Id " + id + " was successfully banned!");
+                    } else {
+                        ColorUtil.printError("Failed to banned user, Please try again");
                     }
                 } catch (BusinessException exception) {
                     ColorUtil.printError(exception.getMessage());
                 }
             }
-        } catch (ResourceNotFoundException exception) {
+        } catch (BusinessException exception) {
             ColorUtil.printError(exception.getMessage());
         }
     }
@@ -301,7 +305,7 @@ public class AdminView {
         System.out.println("ADD ADMIN PAGE");
         String username = InputUtil.stringInput("Input username: ");
         if (username.isBlank()) {
-            throw new IllegalArgumentException("Please input the username!");
+            ColorUtil.printError("Username cannot set to be NULL!");
         } else {
             try {
                 User newAdmin = new User(username, username, username + "@mail.com", UserRole.ADMIN);
