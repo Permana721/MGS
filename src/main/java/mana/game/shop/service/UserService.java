@@ -11,9 +11,9 @@ import java.util.Optional;
 
 public interface UserService {
     User addUser(User user);
-    Optional<User> updateUser(User user);
+    User updateUser(User user);
     boolean deleteUser(int id);
-    boolean banUser(int adminId, int userId, boolean is_active);
+    User banUser(int adminId, int userId, boolean is_active);
     User findUser(int id);
     User authenticate(String username, String password);
     List<User> getAll(UserRole role);
