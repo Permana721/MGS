@@ -2,6 +2,7 @@ package mana.game.shop.service;
 
 import mana.game.shop.entity.Game;
 import mana.game.shop.entity.GameType;
+import mana.game.shop.exception.BusinessException;
 import mana.game.shop.exception.BusinessValidationException;
 import mana.game.shop.exception.ResourceNotFoundException;
 import mana.game.shop.repository.GameRepository;
@@ -20,46 +21,54 @@ public class GameServiceImpl implements GameService {
 
     @Override
     public Game addGame(Game game) {
-        if (Objects.nonNull(game)) {
-            return gameRepository.save(game);
-        } else {
-            throw new RuntimeException();
+        if (game.getTitle().isBlank() || game.getGameType().getDisplayName().isBlank()) {
+            throw new BusinessValidationException("Please fill up all columns!");
         }
+
+        return gameRepository.save(game)
+                .orElseThrow(() -> new BusinessValidationException("An error occurred: please try again later!"));
     }
 
     @Override
     public Game updateGame(Game game) {
-        if (Objects.nonNull(game)) {
-            return gameRepository.update(game);
-        } else {
-            throw new RuntimeException();
+        if (game.getTitle().isBlank() || game.getTitle() == null) {
+            throw new BusinessValidationException("Game title cannot to be empty!");
         }
+
+        return gameRepository.update(game)
+                .orElseThrow(() -> new BusinessValidationException("An error occurred: please try again later!"));
     }
 
     @Override
     public boolean deleteGame(int id) {
-        Game game = findGame(id);
-        if (!game.getTitle().isBlank()) {
-            return gameRepository.delete(id);
-        }
-        return false;
+        findGame(id);
+        return gameRepository.delete(id);
     }
 
     @Override
     public Game findGame(int id) {
+        if (id == 0) {
+            throw new BusinessValidationException("The id must be greater than 0!");
+        }
+
         return gameRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Game with ID " + id + " not found!"));
     }
 
     @Override
-    public List<Game> findGamebyName(String name) throws SQLException {
-        return gameRepository.findByName(name);
+    public List<Game> findGamebyName(String title) throws SQLException {
+        if (title.isBlank()) {
+            throw new BusinessValidationException("Search keyword cannot be empty!");
+        }
+
+        return gameRepository.findByName(title);
     }
 
     @Override
-    public boolean decreaseGameStock(Connection connection, int id, int stock) throws SQLException {
+    public Game decreaseGameStock(Connection connection, int id, int stock) throws SQLException {
         checkTypeGame(id);
         findGame(id);
-        return gameRepository.decreaseStock(connection, id, stock);
+        return gameRepository.decreaseStock(connection, id, stock)
+                .orElseThrow(() -> new BusinessValidationException(""));
     }
 
     @Override
