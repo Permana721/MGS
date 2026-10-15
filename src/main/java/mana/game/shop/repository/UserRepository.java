@@ -12,7 +12,7 @@ import java.util.Optional;
 public interface UserRepository {
     User save(User user);
     Optional<User> update(User user);
-    boolean bannedUser(int id, boolean is_active);
+    Optional<User> bannedUser(boolean is_active, int id);
     boolean delete(int id);
     Optional<User> findById(int id);
     Optional<User> login(String username);
