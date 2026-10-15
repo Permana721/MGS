@@ -2,19 +2,13 @@ package mana.game.shop.repository;
 
 import mana.game.shop.entity.User;
 import mana.game.shop.entity.UserRole;
-import mana.game.shop.exception.AuthenticationException;
-import mana.game.shop.exception.BusinessValidationException;
+import mana.game.shop.exception.DuplicateDataException;
 import mana.game.shop.exception.ResourceNotFoundException;
 import mana.game.shop.util.DatabaseUtil;
-import mana.game.shop.util.PasswordUtil;
 
 import javax.sql.DataSource;
-import java.math.BigDecimal;
-import java.rmi.NoSuchObjectException;
 import java.sql.*;
-import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -37,9 +31,8 @@ public class UserRepositoryImpl implements UserRepository {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 
-            String hashedPassword = PasswordUtil.hashPassword(user.getPassword());
             preparedStatement.setString(1, user.getUsername());
-            preparedStatement.setString(2, hashedPassword);
+            preparedStatement.setString(2, user.getPassword());
             preparedStatement.setString(3, user.getEmail());
             preparedStatement.setString(4, user.getUserRole().name());
 
@@ -54,7 +47,11 @@ public class UserRepositoryImpl implements UserRepository {
             }
             return user;
         } catch (SQLException exception) {
-            throw new RuntimeException("Failed to save user: " + exception.getMessage(), exception);
+            if ("23505".equals(exception.getSQLState())) {
+                throw new DuplicateDataException("Username or email already exists!");
+            }
+
+            throw new RuntimeException("Database error while saving user: " + exception.getMessage(), exception);
         }
     }
 
@@ -74,17 +71,17 @@ public class UserRepositoryImpl implements UserRepository {
             """;
 
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 
-            statement.setString(1, user.getUsername());
-            statement.setString(2, user.getPassword());
-            statement.setString(3, user.getEmail());
-            statement.setString(4, user.getUserRole().name());
-            statement.setBigDecimal(5, user.getBalance());
-            statement.setBoolean(6, user.isIs_active());
-            statement.setLong(7, user.getId());
+            preparedStatement.setString(1, user.getUsername());
+            preparedStatement.setString(2, user.getPassword());
+            preparedStatement.setString(3, user.getEmail());
+            preparedStatement.setString(4, user.getUserRole().name());
+            preparedStatement.setBigDecimal(5, user.getBalance());
+            preparedStatement.setBoolean(6, user.isIs_active());
+            preparedStatement.setLong(7, user.getId());
 
-            try (ResultSet resultSet = statement.executeQuery()) {
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
                     user.setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
                     return Optional.of(user);
@@ -93,7 +90,7 @@ public class UserRepositoryImpl implements UserRepository {
             return Optional.empty();
 
         } catch (SQLException exception) {
-            throw new RuntimeException("Database error: " + exception.getMessage(), exception);
+            throw new RuntimeException("Database error while saving user: " + exception.getMessage(), exception);
         }
     }
 
@@ -115,24 +112,40 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public boolean bannedUser(int id, boolean is_active) {
-        String sql = "UPDATE users set is_active = ?, updated_at = ? WHERE id = ?";
+    public Optional<User> bannedUser(boolean is_active, int id) {
+        String sql = """
+                UPDATE users 
+                SET is_active = ?, 
+                updated_at = CURRENT_TIMESTAMP 
+                WHERE id = ?
+                RETURNING updated_at
+                """;
         try(Connection connection = dataSource.getConnection()){
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
             preparedStatement.setBoolean(1, is_active);
-            preparedStatement.setTimestamp(2, Timestamp.from(Instant.now()));
-            preparedStatement.setInt(3, id);
+            preparedStatement.setInt(2, id);
 
-            int changeRow = preparedStatement.executeUpdate();
-            return changeRow > 0;
+            try(ResultSet resultSet = preparedStatement.executeQuery()){
+                if (resultSet.next()) {
+                    User bannedUser = findById(id)
+                            .orElseThrow(() -> new ResourceNotFoundException("User with id " + id + " not found!"));
+                    bannedUser.setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
+                    return Optional.of(bannedUser);
+                }
+            }
         } catch (SQLException exception) {
             throw new RuntimeException(exception.getMessage(), exception);
         }
+        return Optional.empty();
     }
 
     @Override
     public Optional<User> findById(int id) {
-        String sql = "SELECT * FROM users WHERE id = ?";
+        String sql = """
+                SELECT *
+                FROM users 
+                WHERE id = ?
+                """;
         try(Connection connection = dataSource.getConnection()){
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
             preparedStatement.setInt(1, id);
@@ -140,17 +153,20 @@ public class UserRepositoryImpl implements UserRepository {
             if (resultSet.next()) {
                 User user = rowHelper(resultSet);
                 return Optional.of(user);
-            } else {
-                return Optional.empty();
             }
+            return Optional.empty();
         } catch (SQLException exception) {
-            throw new RuntimeException(exception);
+            throw new RuntimeException(exception.getMessage());
         }
     }
 
     @Override
     public Optional<User> login(String username) {
-        String sql = "SELECT * FROM users WHERE username = ?";
+        String sql = """
+                SELECT *
+                FROM users 
+                WHERE username = ?
+                """;
 
         try (Connection connection = dataSource.getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
@@ -186,7 +202,7 @@ public class UserRepositoryImpl implements UserRepository {
             return users;
 
         } catch (SQLException exception) {
-            throw new ResourceNotFoundException("Database error while fetching users by role: " + exception.getMessage());
+            throw new RuntimeException("Database error while fetching users by role: " + exception.getMessage());
         }
     }
 
