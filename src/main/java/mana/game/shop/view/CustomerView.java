@@ -4,9 +4,11 @@ import mana.game.shop.entity.Game;
 import mana.game.shop.entity.GameType;
 import mana.game.shop.entity.Transaction;
 import mana.game.shop.entity.User;
+import mana.game.shop.exception.BusinessException;
 import mana.game.shop.service.GameService;
 import mana.game.shop.service.TransactionService;
 import mana.game.shop.service.UserService;
+import mana.game.shop.util.ColorUtil;
 import mana.game.shop.util.InputUtil;
 
 import java.math.BigDecimal;
@@ -88,14 +90,17 @@ public class CustomerView {
         }
 
         int gameId = InputUtil.intInput("Input Id game you want to buy: ");
-        boolean result = transactionService.buyGame(currentUser.getId(), gameId);
+        try {
+            boolean result = transactionService.buyGame(currentUser.getId(), gameId);
+            if (result) {
+                currentUser = userService.findUser(currentUser.getId());
 
-        if (result) {
-            currentUser = userService.findUser(currentUser.getId());
-
-            System.out.println("Success bought game!");
-            System.out.println("Now you have a game: " + gameService.findGame(gameId).getTitle());
-            System.out.println("And your balance is: Rp. " + InputUtil.decimalFormat(currentUser.getBalance()));
+                System.out.println("Success bought game!");
+                System.out.println("Now you have a game: " + gameService.findGame(gameId).getTitle());
+                System.out.println("And your balance is: Rp. " + InputUtil.decimalFormat(currentUser.getBalance()));
+            }
+        } catch (BusinessException exception) {
+            ColorUtil.printError("An error occurred: " + exception.getMessage());
         }
     }
 
@@ -138,8 +143,8 @@ public class CustomerView {
         }
 
         try {
-            Optional<User> updated = userService.updateUser(currentUser);
-            if (updated.isPresent()) {
+            User updatedUser = userService.updateUser(currentUser);
+            if (updatedUser.getUsername().equalsIgnoreCase(currentUser.getUsername())) {
                 System.out.println("Profile updated successfully!");
             } else {
                 System.out.println("Failed to update profile.");
@@ -152,7 +157,7 @@ public class CustomerView {
     private void seeProfile() {
         System.out.println("========================================================");
         System.out.println("Username: " + currentUser.getUsername());
-        System.out.println("Balance: " + InputUtil.decimalFormat(currentUser.getBalance()));
+        System.out.println("Balance: " + "Rp. " + InputUtil.decimalFormat(currentUser.getBalance()));
         if (currentUser.isIs_active()) {
             System.out.println("Status: Active");
         } else {
