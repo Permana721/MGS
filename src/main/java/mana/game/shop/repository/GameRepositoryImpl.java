@@ -1,6 +1,7 @@
 package mana.game.shop.repository;
 
 import mana.game.shop.entity.*;
+import mana.game.shop.exception.DuplicateDataException;
 import mana.game.shop.exception.ResourceNotFoundException;
 import mana.game.shop.util.DatabaseUtil;
 
@@ -8,104 +9,116 @@ import javax.sql.DataSource;
 import java.sql.*;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.StreamSupport;
 
 import static java.sql.Types.INTEGER;
 
 public class GameRepositoryImpl implements GameRepository {
-    private DataSource dataSource;
+    private final DataSource dataSource;
 
     public GameRepositoryImpl(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
     @Override
-    public Game save(Game game) {
+    public Optional<Game> save(Game game) {
         String sql = """
                    INSERT INTO games
-                   (title, category, price, type, stock, size_mb, release_date) 
-                   VALUES 
+                   (title, category, price, type, stock, size_mb, release_date)\s
+                   VALUES\s
                    (?, ?::game_category, ?, ?::game_type, ?, ?, ?)
-                   """;
+                   RETURNING id, created_at, updated_at
+                  \s""";
 
         try(Connection connection = dataSource.getConnection()){
-            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
-            statement.setString(1, game.getTitle());
-            statement.setString(2, game.getGameCategory().name());
-            statement.setBigDecimal(3, game.getPrice());
-            statement.setString(4, game.getGameType().name());
+            preparedStatement.setString(1, game.getTitle());
+            preparedStatement.setString(2, game.getGameCategory().name());
+            preparedStatement.setBigDecimal(3, game.getPrice());
+            preparedStatement.setString(4, game.getGameType().name());
+
             if (Objects.nonNull(game.getStock())) {
-                statement.setInt(5, game.getStock());
+                preparedStatement.setInt(5, game.getStock());
             } else {
-                statement.setNull(5, INTEGER);
+                preparedStatement.setNull(5, INTEGER);
             }
             if (Objects.nonNull(game.getSize())) {
-                statement.setInt(6, game.getSize());
+                preparedStatement.setInt(6, game.getSize());
             } else {
-                statement.setNull(6, INTEGER);
+                preparedStatement.setNull(6, INTEGER);
             }
-            statement.setDate(7, Date.valueOf((LocalDate) game.getRelease_date()));
+            preparedStatement.setDate(7, Date.valueOf((LocalDate) game.getRelease_date()));
 
-            statement.executeUpdate();
+            preparedStatement.executeUpdate();
 
-            try(ResultSet generatedKeys = statement.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    game.setId(generatedKeys.getInt(1));
+            try(ResultSet resultSet = preparedStatement.getGeneratedKeys()) {
+                if (resultSet.next()) {
+                    game.setId(resultSet.getInt("id"));
+                    game.setCreated_at(resultSet.getObject("created_at", OffsetDateTime.class).toInstant());
+                    game.setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
+                    return Optional.of(rowHelper(resultSet));
                 }
             }
-
-            return game;
+            return Optional.empty();
         } catch (SQLException exception) {
-            throw new RuntimeException(exception);
+            if ("23505".equals(exception.getSQLState())) {
+                throw new DuplicateDataException("Game is already exists!");
+            }
+
+            throw new RuntimeException("Database error while saving user: " + exception.getMessage(), exception);
         }
     }
 
     @Override
-    public Game update(Game game) {
+    public Optional<Game> update(Game game) {
         String sql = """
-                 UPDATE games 
-                 SET title = ?, 
-                 category = ?::game_category, 
-                 price = ?, 
-                 game_type = ?::game_type, 
-                 stock = ?, 
-                 size_mb = ?, 
+                 UPDATE games\s
+                 SET title = ?,\s
+                 category = ?::game_category,\s
+                 price = ?,\s
+                 game_type = ?::game_type,\s
+                 stock = ?,\s
+                 size_mb = ?,\s
                  release_date = ?,
                  updated_at = CURRENT_TIMESTAMP
                  WHERE id = ?
-                 """;
+                 RETURNING updated_at
+                \s""";
 
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 
-            statement.setString(1, game.getTitle());
-            statement.setString(2, game.getGameCategory().name());
-            statement.setBigDecimal(3, game.getPrice());
-            statement.setString(4, game.getGameType().name());
+            preparedStatement.setString(1, game.getTitle());
+            preparedStatement.setString(2, game.getGameCategory().name());
+            preparedStatement.setBigDecimal(3, game.getPrice());
+            preparedStatement.setString(4, game.getGameType().name());
 
             if (Objects.nonNull(game.getStock())) {
-                statement.setInt(5, game.getStock());
+                preparedStatement.setInt(5, game.getStock());
             } else {
-                statement.setNull(5, Types.INTEGER);
+                preparedStatement.setNull(5, Types.INTEGER);
             }
 
             if (Objects.nonNull(game.getSize())) {
-                statement.setInt(6, game.getSize());
+                preparedStatement.setInt(6, game.getSize());
             } else {
-                statement.setNull(6, Types.INTEGER);
+                preparedStatement.setNull(6, Types.INTEGER);
             }
 
-            statement.setDate(7, Date.valueOf(game.getRelease_date()));
-            statement.setInt(8, game.getId());
+            preparedStatement.setDate(7, Date.valueOf(game.getRelease_date()));
+            preparedStatement.setInt(8, game.getId());
 
-            int rowsAffected = statement.executeUpdate();
-            if (rowsAffected == 0) {
-                throw new RuntimeException("Update failed, game with ID " + game.getId() + " not found!");
+            try(ResultSet resultSet = preparedStatement.executeQuery()){
+                if (resultSet.next()) {
+                    game.setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
+                    return Optional.of(rowHelper(resultSet));
+                }
             }
 
-            return game;
+            return Optional.empty();
 
         } catch (SQLException exception) {
             throw new RuntimeException("Failed to update the game: " + exception.getMessage(), exception);
@@ -114,31 +127,52 @@ public class GameRepositoryImpl implements GameRepository {
 
     @Override
     public boolean delete(int id) {
-        String sql = "DELETE FROM games WHERE id = ?";
-        try(Connection connection = dataSource.getConnection();
-            PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-                preparedStatement.setInt(1, id);
-                return preparedStatement.executeUpdate() > 0;
+        String sql = """
+                DELETE FROM games\s
+                WHERE id = ?
+               \s""";
+        try(Connection connection = dataSource.getConnection()){
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+            preparedStatement.setInt(1, id);
+            int result = preparedStatement.executeUpdate();
+            return result > 0;
         } catch (SQLException exception) {
-            throw new RuntimeException(exception);
+            throw new RuntimeException("Failed to delete the game: " + exception.getMessage());
         }
     }
 
     @Override
-    public boolean decreaseStock(Connection connection, int id, int stock) throws SQLException {
-        String sql = "UPDATE games SET stock = stock - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+    public Optional<Game> decreaseStock(Connection connection, int id, int stock) throws SQLException {
+        String sql = """
+                UPDATE games\s
+                SET stock = stock - ?,\s
+                updated_at = CURRENT_TIMESTAMP\s
+                WHERE id = ?
+                RETURNING updated_at
+               \s""";
+
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
         preparedStatement.setInt(1, stock);
         preparedStatement.setInt(2, id);
 
-        int rowsUpdated = preparedStatement.executeUpdate();
-        return rowsUpdated > 0;
+        try(ResultSet resultSet = preparedStatement.executeQuery()){
+            if (resultSet.next()) {
+                rowHelper(resultSet).setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
+                return Optional.of(rowHelper(resultSet));
+            }
+        } catch (SQLException exception) {
+            throw new RuntimeException("Failed to decrease stock game: " + exception.getMessage());
+        }
+        return Optional.empty();
     }
 
     @Override
     public Optional<Game> findById(int id) {
-        String sql = "SELECT * FROM games WHERE id = ?";
+        String sql = """
+                SELECT * FROM games
+                WHERE id = ?
+                """;
         try(Connection connection = dataSource.getConnection()){
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
             preparedStatement.setInt(1, id);
@@ -146,34 +180,33 @@ public class GameRepositoryImpl implements GameRepository {
                 if (resultSet.next()) {
                     Game game = rowHelper(resultSet);
                     return Optional.of(game);
-                } else {
-                    return Optional.empty();
                 }
             }
         } catch (SQLException exception) {
-            throw new RuntimeException(exception);
+            throw new RuntimeException("Failed to search game: " + exception.getMessage());
         }
+        return Optional.empty();
     }
 
     @Override
-    public List<Game> findByName(String keyword) {
-        String sql = "SELECT * FROM games WHERE title ILIKE ?";
+    public List<Game> findByName(String title) {
+        String sql = "SELECT * FROM games WHERE title ILIKE ? ORDER BY title";
         List<Game> games = new ArrayList<>();
 
         try (Connection connection = DatabaseUtil.getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, "%" + keyword.trim() + "%");
+
+            statement.setString(1, "%" + title.trim() + "%");
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     games.add(rowHelper(resultSet));
                 }
             }
-        } catch (SQLException e) {
-            throw new RuntimeException("Error searching games: " + e.getMessage(), e);
+            return games;
+        } catch (SQLException exception) {
+            throw new RuntimeException("Error searching games: " + exception.getMessage());
         }
-
-        return games;
     }
 
     private Game rowHelper(ResultSet resultSet) throws SQLException {
