@@ -24,11 +24,20 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User addUser(User user) {
+        if (user.getUsername().isBlank() || user.getUsername() == null) {
+            throw new BusinessValidationException("Username cannot be empty!");
+        }
+        if (user.getPassword().length() < 6) {
+            throw new BusinessValidationException("Password must be at least 6 characters!");
+        }
+
+        String hashedPassword = PasswordUtil.hashPassword(user.getPassword());
+        user.setPassword(hashedPassword);
         return userRepository.save(user);
     }
 
     @Override
-    public Optional<User> updateUser(User user) {
+    public User updateUser(User user) {
         if (user.getUsername() == null || user.getUsername().trim().isEmpty()) {
             throw new IllegalArgumentException("Username cannot be empty!");
         }
@@ -36,7 +45,8 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Email cannot be empty!");
         }
 
-        return userRepository.update(user);
+        return userRepository.update(user)
+                .orElseThrow(() -> new ResourceNotFoundException("An error occurred: please try again later!"));
     }
 
     @Override
@@ -46,7 +56,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public boolean banUser(int adminId, int userId, boolean is_active) {
+    public User banUser(int adminId, int userId, boolean is_active) {
         if (adminId == userId) {
             throw new BusinessValidationException("Cannot ban yourself!");
         }
@@ -57,7 +67,9 @@ public class UserServiceImpl implements UserService {
         if (user.getUserRole().equals(UserRole.ADMIN)) {
             throw new BusinessValidationException("Cannot ban admin!");
         }
-        return userRepository.bannedUser(userId, is_active);
+
+        return userRepository.bannedUser(is_active, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User with id " + userId + " not found!"));
     }
 
     @Override
