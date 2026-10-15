@@ -38,6 +38,9 @@ CREATE TABLE games (
 CREATE INDEX idx_games_category ON games(category);
 CREATE INDEX idx_games_title ON games(title);
 
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX idx_games_title_trgm ON games USING gin (title gin_trgm_ops);
+
 COMMIT;
 -- END TABLE games
 
