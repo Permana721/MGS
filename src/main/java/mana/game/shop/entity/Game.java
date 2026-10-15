@@ -2,6 +2,7 @@ package mana.game.shop.entity;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
 
 public abstract class Game {
@@ -13,7 +14,8 @@ public abstract class Game {
     private Integer stock;
     private Integer size;
     private LocalDate release_date;
-    private Timestamp created_at;
+    private Instant created_at;
+    private Instant updated_at;
 
     public Game(String title, GameCategory gameCategory, BigDecimal price, GameType gameType, Integer stock, Integer size, LocalDate release_date) {
         this.title = title;
@@ -93,11 +95,19 @@ public abstract class Game {
         this.release_date = release_date;
     }
 
-    public Timestamp getCreated_at() {
+    public Instant getCreated_at() {
         return created_at;
     }
 
-    public void setCreated_at(Timestamp created_at) {
+    public void setCreated_at(Instant created_at) {
         this.created_at = created_at;
+    }
+
+    public Instant getUpdated_at() {
+        return updated_at;
+    }
+
+    public void setUpdated_at(Instant updated_at) {
+        this.updated_at = updated_at;
     }
 }
