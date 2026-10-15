@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 public class TransactionServiceImpl implements TransactionService {
     private final TransactionRepository transactionRepository;
@@ -61,10 +62,7 @@ public class TransactionServiceImpl implements TransactionService {
             }
 
             if (game.getGameType().equals(GameType.PHYSICAL)) {
-                boolean stockDecreased = gameRepository.decreaseStock(connection, gameId, 1);
-                if (!stockDecreased) {
-                    throw new BusinessValidationException("The physical game is out of stock!");
-                }
+                gameRepository.decreaseStock(connection, gameId, 1);
             }
 
             boolean savedTransaction = transactionRepository.saveTransaction(connection, userId, gameId, game.getPrice());
@@ -77,12 +75,10 @@ public class TransactionServiceImpl implements TransactionService {
             return true;
 
         } catch (Exception exception) {
-            if (connection != null) {
-                try {
-                    connection.rollback();
-                } catch (SQLException rollbackEx) {
-
-                }
+            try {
+                connection.rollback();
+            } catch (SQLException e) {
+                throw new RuntimeException(e.getMessage());
             }
             throw new BusinessValidationException("Transaction failed and rolled back: " + exception.getMessage());
         } finally {
