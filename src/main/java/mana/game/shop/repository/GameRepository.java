@@ -8,10 +8,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface GameRepository {
-    Game save(Game game);
-    Game update(Game game);
+    Optional<Game> save(Game game);
+    Optional<Game> update(Game game);
     boolean delete(int id);
-    boolean decreaseStock(Connection connection, int id, int stock) throws SQLException;
+    Optional<Game> decreaseStock(Connection connection, int id, int stock) throws SQLException;
     Optional<Game> findById(int id);
     List<Game> findByName(String name) throws SQLException;
     List<Game> findAll();
