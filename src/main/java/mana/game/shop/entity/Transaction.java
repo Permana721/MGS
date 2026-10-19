@@ -8,6 +8,7 @@ public class Transaction {
     private int userId;
     private int gameId;
     private BigDecimal amount;
+    private TransactionStatus status;
     private Instant transactionDate;
 
     public Transaction(int userId, int gameId, BigDecimal amount) {
@@ -50,6 +51,14 @@ public class Transaction {
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
+    }
+
+    public TransactionStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(TransactionStatus status) {
+        this.status = status;
     }
 
     public void setTransactionDate(Instant transactionDate) {
