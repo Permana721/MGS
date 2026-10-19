@@ -42,23 +42,25 @@ public class CustomerView {
             System.out.println("==================================");
             System.out.println("1. Top up balance");
             System.out.println("2. Buy game");
-            System.out.println("3. Search game");
-            System.out.println("4. Edit profile");
-            System.out.println("5. See profile");
-            System.out.println("6. Transaction history");
+            System.out.println("3. Refund game");
+            System.out.println("4. Search game");
+            System.out.println("5. Edit profile");
+            System.out.println("6. See profile");
+            System.out.println("7. Transaction history");
 
             System.out.println("0. Logout");
 
-            int input = InputUtil.intInput("Choice: ");
+            String input = InputUtil.stringInput("Choice: ");
 
             switch (input){
-                case 1 -> topup();
-                case 2 -> buyGame();
-                case 3 -> searchGame();
-                case 4 -> editProfile();
-                case 5 -> seeProfile();
-                case 6 -> displayUserTransactions(currentUser);
-                case 0 -> {
+                case "1" -> topup();
+                case "2" -> buyGame();
+                case "3" -> refundGame();
+                case "4" -> searchGame();
+                case "5" -> editProfile();
+                case "6" -> seeProfile();
+                case "7" -> displayUserTransactions(currentUser);
+                case "0" -> {
                     return;
                 }
                 default -> throw new IllegalArgumentException("Please input a valid number!");
@@ -73,7 +75,7 @@ public class CustomerView {
             return;
         }
 
-        boolean result = transactionService.addBalance(currentUser.getId(), addedSaldo);
+        boolean result = userService.addBalance(currentUser.getId(), addedSaldo);
         if (result) {
             currentUser = userService.findUser(currentUser.getId());
 
@@ -103,6 +105,12 @@ public class CustomerView {
         } catch (BusinessException exception) {
             ColorUtil.printError("An error occurred: " + exception.getMessage());
         }
+    }
+
+    private void refundGame() {
+        displayUserTransactions(currentUser);
+
+        String input = InputUtil.stringInput("Please select the id transaction you wish to refund (Refunds are only available for transactions from the last 7 days): ");
     }
 
     private void searchGame() throws SQLException {
