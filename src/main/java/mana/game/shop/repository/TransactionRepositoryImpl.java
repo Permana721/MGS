@@ -1,6 +1,7 @@
 package mana.game.shop.repository;
 
 import mana.game.shop.entity.Transaction;
+import mana.game.shop.entity.TransactionStatus;
 import mana.game.shop.entity.User;
 import mana.game.shop.util.DatabaseUtil;
 
@@ -10,7 +11,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -23,19 +27,23 @@ public class TransactionRepositoryImpl implements TransactionRepository {
     }
 
     @Override
-    public boolean saveTransaction(Connection connection, int userId, int gameId, BigDecimal amount) throws SQLException {
+    public boolean saveTransaction(Connection connection, int userId, int gameId, BigDecimal amount) {
         String sql = """
                 INSERT INTO transactions 
                 (user_id, game_id, amount) 
                 VALUES 
                 (?, ?, ?)
                 """;
-        PreparedStatement preparedStatement = connection.prepareStatement(sql);
-        preparedStatement.setInt(1, userId);
-        preparedStatement.setInt(2, gameId);
-        preparedStatement.setBigDecimal(3, amount);
-        int rowsUpdated = preparedStatement.executeUpdate();
-        return rowsUpdated > 0;
+
+        try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
+            preparedStatement.setInt(1, userId);
+            preparedStatement.setInt(2, gameId);
+            preparedStatement.setBigDecimal(3, amount);
+            int rowsUpdated = preparedStatement.executeUpdate();
+            return rowsUpdated > 0;
+        } catch (SQLException exception) {
+            throw new RuntimeException(exception.getMessage());
+        }
     }
 
     @Override
@@ -46,6 +54,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
                 updated_at = CURRENT_TIMESTAMP 
                 WHERE id = ?
                 """;
+
         try(Connection connection = dataSource.getConnection()){
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
@@ -63,9 +72,10 @@ public class TransactionRepositoryImpl implements TransactionRepository {
     public boolean deductBalance(Connection connection, User user, BigDecimal amount) throws SQLException {
         String sql = """
                 UPDATE users 
-                set balance = balance - ?,
+                SET balance = balance - ?,
                 updated_at = CURRENT_TIMESTAMP 
                 WHERE id = ? AND balance >= ?
+                RETURNING balance, updated_at
                 """;
 
         try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
@@ -118,6 +128,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
                 (SELECT 1 FROM transactions 
                 WHERE user_id = ? 
                 AND game_id = ?)
+                FOR UPDATE
                 """;
 
         try (Connection connection = dataSource.getConnection();
@@ -138,13 +149,44 @@ public class TransactionRepositoryImpl implements TransactionRepository {
         }
     }
 
+    @Override
+    public List<Transaction> findTransctionsByDate(Instant fromDate, Instant toDate) {
+        String sql = """
+                SELECT * FROM transactions
+                WHERE created_at 
+                BETWEEN ? AND ? 
+                ORDER BY created_at DESC
+                """;
+
+        List<Transaction> transactions = new ArrayList<>();
+
+        try(Connection connection = dataSource.getConnection()){
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+            preparedStatement.setObject(1, fromDate.atOffset(ZoneOffset.UTC));
+            preparedStatement.setObject(2, toDate.atOffset(ZoneOffset.UTC));
+
+            try(ResultSet resultSet = preparedStatement.executeQuery()){
+                while (resultSet.next()) {
+                    transactions.add(rowHelper(resultSet));
+                }
+            } catch (SQLException exception) {
+                throw new RuntimeException(exception.getMessage());
+            }
+            return transactions;
+        } catch (SQLException exception) {
+            throw new RuntimeException(exception.getMessage());
+        }
+    }
+
     private Transaction rowHelper(ResultSet resultSet) throws SQLException {
+        TransactionStatus transactionStatus = TransactionStatus.valueOf(resultSet.getString("status"));
         Transaction transaction = new Transaction();
         transaction.setId(resultSet.getInt("id"));
         transaction.setUserId(resultSet.getInt("user_id"));
         transaction.setGameId(resultSet.getInt("game_id"));
         transaction.setAmount(resultSet.getBigDecimal("amount"));
-        transaction.setTransactionDate(DatabaseUtil.getInstant(resultSet, "transaction_date"));
+        transaction.setStatus(transactionStatus);
+        transaction.setTransactionDate(DatabaseUtil.getInstant(resultSet, "created_at"));
         return transaction;
     }
 }
