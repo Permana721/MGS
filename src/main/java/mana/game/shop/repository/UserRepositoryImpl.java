@@ -7,6 +7,7 @@ import mana.game.shop.exception.ResourceNotFoundException;
 import mana.game.shop.util.DatabaseUtil;
 
 import javax.sql.DataSource;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -109,6 +110,54 @@ public class UserRepositoryImpl implements UserRepository {
         } catch (SQLException exception) {
             throw new ResourceNotFoundException(exception.getMessage());
         }
+    }
+
+    @Override
+    public boolean topup(int id, BigDecimal balance) {
+        String sql = """
+                UPDATE users 
+                set balance = balance + ?, 
+                updated_at = CURRENT_TIMESTAMP 
+                WHERE id = ?
+                """;
+
+        try(Connection connection = dataSource.getConnection()){
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+
+            preparedStatement.setBigDecimal(1, balance);
+            preparedStatement.setInt(2, id);
+
+            int rowsUpdated = preparedStatement.executeUpdate();
+            return rowsUpdated > 0;
+        } catch (SQLException exception) {
+            throw new RuntimeException(exception.getMessage(), exception);
+        }
+    }
+
+    @Override
+    public boolean deductBalance(Connection connection, User user, BigDecimal amount) throws SQLException {
+        String sql = """
+                UPDATE users 
+                SET balance = balance - ?,
+                updated_at = CURRENT_TIMESTAMP 
+                WHERE id = ? AND balance >= ?
+                RETURNING balance, updated_at
+                """;
+
+        try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
+            preparedStatement.setBigDecimal(1, amount);
+            preparedStatement.setInt(2, user.getId());
+            preparedStatement.setBigDecimal(3, amount);
+
+            try(ResultSet resultSet = preparedStatement.executeQuery()){
+                if (resultSet.next()) {
+                    user.setBalance(resultSet.getBigDecimal("balance"));
+                    user.setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Override
