@@ -140,13 +140,41 @@ public class GameRepositoryImpl implements GameRepository {
     }
 
     @Override
+    public Optional<Game> addStock(Connection connection, int id, int stock) throws SQLException {
+        String sql = """
+                UPDATE games\s
+                SET stock = stock + ?,\s
+                updated_at = CURRENT_TIMESTAMP\s
+                WHERE id = ? AND stock >= ?
+                RETURNING stock, updated_at
+               \s""";
+
+        PreparedStatement preparedStatement = connection.prepareStatement(sql);
+
+        preparedStatement.setInt(1, stock);
+        preparedStatement.setInt(2, id);
+        preparedStatement.setInt(3, stock);
+
+        try(ResultSet resultSet = preparedStatement.executeQuery()){
+            if (resultSet.next()) {
+                rowHelper(resultSet).setStock(resultSet.getInt("stock"));
+                rowHelper(resultSet).setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
+                return Optional.of(rowHelper(resultSet));
+            }
+        } catch (SQLException exception) {
+            throw new RuntimeException("Failed to decrease stock game: " + exception.getMessage());
+        }
+        return Optional.empty();
+    }
+
+    @Override
     public Optional<Game> decreaseStock(Connection connection, int id, int stock) throws SQLException {
         String sql = """
                 UPDATE games\s
                 SET stock = stock - ?,\s
                 updated_at = CURRENT_TIMESTAMP\s
                 WHERE id = ? AND stock >= ?
-                RETURNING *
+                RETURNING stock, updated_at
                \s""";
 
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
