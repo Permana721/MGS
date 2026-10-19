@@ -52,14 +52,12 @@ public class GameRepositoryImpl implements GameRepository {
             }
             preparedStatement.setDate(7, Date.valueOf((LocalDate) game.getRelease_date()));
 
-            preparedStatement.executeUpdate();
-
-            try(ResultSet resultSet = preparedStatement.getGeneratedKeys()) {
+            try(ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
                     game.setId(resultSet.getInt("id"));
                     game.setCreated_at(resultSet.getObject("created_at", OffsetDateTime.class).toInstant());
                     game.setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
-                    return Optional.of(rowHelper(resultSet));
+                    return Optional.of(game);
                 }
             }
             return Optional.empty();
@@ -68,7 +66,7 @@ public class GameRepositoryImpl implements GameRepository {
                 throw new DuplicateDataException("Game is already exists!");
             }
 
-            throw new RuntimeException("Database error while saving user: " + exception.getMessage(), exception);
+            throw new RuntimeException(exception.getMessage(), exception);
         }
     }
 
@@ -114,7 +112,7 @@ public class GameRepositoryImpl implements GameRepository {
             try(ResultSet resultSet = preparedStatement.executeQuery()){
                 if (resultSet.next()) {
                     game.setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
-                    return Optional.of(rowHelper(resultSet));
+                    return Optional.of(game);
                 }
             }
 
@@ -147,17 +145,19 @@ public class GameRepositoryImpl implements GameRepository {
                 UPDATE games\s
                 SET stock = stock - ?,\s
                 updated_at = CURRENT_TIMESTAMP\s
-                WHERE id = ?
-                RETURNING updated_at
+                WHERE id = ? AND stock >= ?
+                RETURNING *
                \s""";
 
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
         preparedStatement.setInt(1, stock);
         preparedStatement.setInt(2, id);
+        preparedStatement.setInt(3, stock);
 
         try(ResultSet resultSet = preparedStatement.executeQuery()){
             if (resultSet.next()) {
+                rowHelper(resultSet).setStock(resultSet.getInt("stock"));
                 rowHelper(resultSet).setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
                 return Optional.of(rowHelper(resultSet));
             }
@@ -190,7 +190,7 @@ public class GameRepositoryImpl implements GameRepository {
 
     @Override
     public List<Game> findByName(String title) {
-        String sql = "SELECT * FROM games WHERE title ILIKE ? ORDER BY title";
+        String sql = "SELECT * FROM games WHERE title ILIKE ? ORDER BY id";
         List<Game> games = new ArrayList<>();
 
         try (Connection connection = DatabaseUtil.getDataSource().getConnection();
@@ -241,7 +241,7 @@ public class GameRepositoryImpl implements GameRepository {
 
     @Override
     public List<Game> findAll() {
-        String sql = "SELECT * FROM games";
+        String sql = "SELECT * FROM games ORDER BY id";
 
         try(Connection connection = dataSource.getConnection();
             Statement statement = connection.createStatement();
