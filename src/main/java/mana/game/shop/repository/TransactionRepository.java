@@ -13,9 +13,8 @@ import java.util.Optional;
 
 public interface TransactionRepository {
     boolean saveTransaction(Connection connection, int userId, int gameId, BigDecimal amount) throws SQLException;
-    boolean deductBalance(Connection connection, User user, BigDecimal balance) throws SQLException;
-    boolean topup(int id, BigDecimal balance);
     List<Transaction> findAllByUserId(int UserId);
     List<Transaction> findTransctionsByDate(Instant fromDate, Instant toDate);
+    Optional<Transaction> findTransaction(int id);
     boolean existsByUserIdAndGameId(int userId, int gameId);
 }
