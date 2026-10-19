@@ -90,6 +90,7 @@ public class CustomerView {
         }
 
         int gameId = InputUtil.intInput("Input Id game you want to buy: ");
+
         try {
             boolean result = transactionService.buyGame(currentUser.getId(), gameId);
             if (result) {
@@ -108,7 +109,7 @@ public class CustomerView {
         String name = InputUtil.stringInput("Input the name of game went you search: ");
         List<Game> games = gameService.findGamebyName(name);
         System.out.println(games.size() + " result for game with name " + name + " : ");
-        games.forEach(game -> System.out.print(game.getTitle() + "\n"));
+        games.forEach(this::viewGame);
     }
 
     private void editProfile() {
@@ -169,7 +170,7 @@ public class CustomerView {
                 .toList();
         if (!transactions.isEmpty()) {
             System.out.print("Games owned: ");
-            games.forEach(game -> System.out.print(game.getTitle() + " " + game.getGameType() + " VERSION\n"));
+            games.forEach(game -> System.out.print(game.getTitle() + " " + game.getGameType() + " VERSION,\n"));
         }
         System.out.println("Member since: " + InputUtil.formatDate(currentUser.getCreated_at()));
         System.out.println("========================================================\n");
@@ -186,7 +187,7 @@ public class CustomerView {
         if (game.getGameType() == GameType.PHYSICAL) {
             System.out.println("Game stock    : " + game.getStock() + " unit");
         } else {
-            System.out.println("Game size     : " + game.getSize() + " MB");
+            System.out.println("Game size     : " + InputUtil.sizeInGB(game.getSize()) + " GB");
         }
 
         System.out.println("Release date  : " + game.getRelease_date());
@@ -216,14 +217,14 @@ public class CustomerView {
         if (thisMonthTransactions.isEmpty()) {
             System.out.println("No transactions this month.");
         } else {
-            System.out.println("\nThis Month =============================");
+            System.out.println("\n=========================== This Month =============================");
             printTransactionList(thisMonthTransactions);
         }
 
         if (olderTransactions.isEmpty()) {
-            System.out.println("No older transactions.");
+            System.out.println("====================================================================\n");
         } else {
-            System.out.println("\nOther Months ===========================");
+            System.out.println("\n=========================== Other Months ===========================");
             printTransactionList(olderTransactions);
         }
     }
