@@ -2,8 +2,9 @@ package mana.game.shop.entity;
 
 public enum TransactionStatus {
     PENDING("Pending"),
-    COMPLETED("Completed"),
-    REFUND("Refund");
+    SUCCESS("Completed"),
+    FAILED("Failed"),
+    REFUNDED("Refund");
 
     private String displayName;
 
