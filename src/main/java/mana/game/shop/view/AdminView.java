@@ -11,7 +11,9 @@ import mana.game.shop.util.ColorUtil;
 import mana.game.shop.util.InputUtil;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
@@ -21,11 +23,13 @@ import java.util.Objects;
 public class AdminView {
     private UserService userService;
     private GameService gameService;
+    private TransactionService transactionService;
     private final User currentUser;
 
-    public AdminView(UserService userService, GameService gameService,  User currentUser) {
+    public AdminView(UserService userService, GameService gameService, TransactionService transactionService,  User currentUser) {
         this.currentUser = currentUser;
         this.gameService = gameService;
+        this.transactionService = transactionService;
         this.userService = userService;
     }
 
@@ -42,6 +46,7 @@ public class AdminView {
             System.out.println("5. View all person");
             System.out.println("6. Ban/Unban user");
             System.out.println("7. Add Admin");
+            System.out.println("8. View Transaction history");
             System.out.println("0. Logout");
 
             String input = InputUtil.stringInput("Choice: ");
@@ -54,6 +59,7 @@ public class AdminView {
                 case "5" -> viewAllPerson();
                 case "6" -> banUser();
                 case "7" -> addAdmin();
+                case "8" -> transactionHistory();
                 case "0" -> {
                     return;
                 }
@@ -68,28 +74,28 @@ public class AdminView {
         Integer size = null;
         Integer stock = null;
         String title = InputUtil.stringInput("Input game title: ");
-        int categoryInput = InputUtil.intInput("Select game category" +
+        String categoryInput = InputUtil.stringInput("Select game category" +
                 "\n1. Action\n2. RPG\n3. Sports \n4. Strategy\n5. Adventure\nSelect: ");
         BigDecimal price = InputUtil.bigDecimalInput("Input game price: ");
-        int typeInput = InputUtil.intInput("Select game type" +
+        String typeInput = InputUtil.stringInput("Select game type" +
                 "\n1. Digital\n2. Physical\nSelect: ");
         LocalDate dateInput = InputUtil.dateInput("Input release date with format yyyy-MM-dd: ");
 
         switch (categoryInput) {
-            case 1 -> gameCategory = GameCategory.ACTION;
-            case 2 -> gameCategory = GameCategory.RPG;
-            case 3 -> gameCategory = GameCategory.SPORTS;
-            case 4 -> gameCategory = GameCategory.STRATEGY;
-            case 5 -> gameCategory = GameCategory.ADVENTURE;
+            case "1" -> gameCategory = GameCategory.ACTION;
+            case "2" -> gameCategory = GameCategory.RPG;
+            case "3" -> gameCategory = GameCategory.SPORTS;
+            case "4" -> gameCategory = GameCategory.STRATEGY;
+            case "5" -> gameCategory = GameCategory.ADVENTURE;
             default -> ColorUtil.printError("Please input a valid number!");
         }
 
         switch (typeInput) {
-            case 1 -> {
+            case "1" -> {
                 gameType = GameType.DIGITAL;
                 size = InputUtil.intInput("Input game size in Mb: ");
             }
-            case 2 -> {
+            case "2" -> {
                 gameType = GameType.PHYSICAL;
                 stock = InputUtil.intInput("Input game stock: ");
             }
@@ -109,7 +115,7 @@ public class AdminView {
             } catch (BusinessValidationException exception) {
                 ColorUtil.printError("Failed to add a game: " + exception.getMessage());
             } catch (Exception exception) {
-                ColorUtil.printError("System error occurred. Please try again later!");
+                ColorUtil.printError("System error occurred: " + exception.getMessage());
             }
         } else {
             DigitalGame digitalGame = new DigitalGame(title, gameCategory, price, gameType, null, size, dateInput);
@@ -123,12 +129,13 @@ public class AdminView {
             } catch (BusinessValidationException exception) {
                 ColorUtil.printError("Failed to add a game: " + exception.getMessage());
             } catch (Exception exception) {
-                ColorUtil.printError("System error occurred. Please try again later!");
+                ColorUtil.printError("System error occurred: " + exception.getMessage());
             }
         }
     }
 
     private void editGame() {
+        viewAllGames();
         int gameId = InputUtil.intInput("Input game Id want to edit: ");
         try {
             Game selectedGame = gameService.findGame(gameId);
@@ -144,22 +151,22 @@ public class AdminView {
             System.out.println("5. Edit game release date");
             System.out.println("0. Cancel");
 
-            int input = InputUtil.intInput("Select: ");
+            String input = InputUtil.stringInput("Select: ");
 
             switch (input) {
-                case 1 -> {
+                case "1" -> {
                     String newTitle = InputUtil.stringInput("Input new title: ");
                     selectedGame.setTitle(newTitle);
                 }
-                case 2 -> {
+                case "2" -> {
                     String newCategory = InputUtil.stringInput("Input new category: ");
                     selectedGame.setGameCategory(GameCategory.valueOf(newCategory.toUpperCase()));
                 }
-                case 3 -> {
+                case "3" -> {
                     BigDecimal newPrice = InputUtil.bigDecimalInput("Input new price: ");
                     selectedGame.setPrice(newPrice);
                 }
-                case 4 -> {
+                case "4" -> {
                     if (isPhysical) {
                         int newStock = InputUtil.intInput("Input new stock: ");
                         selectedGame.setStock(newStock);
@@ -168,11 +175,11 @@ public class AdminView {
                         selectedGame.setSize(newSize);
                     }
                 }
-                case 5 -> {
+                case "5" -> {
                     LocalDate newDate = InputUtil.dateInput("Input new release date");
                     selectedGame.setRelease_date(newDate);
                 }
-                case 0 -> {
+                case "0" -> {
                     ColorUtil.printError("Update cancelled.");
                     return;
                 }
@@ -191,6 +198,7 @@ public class AdminView {
     }
 
     private void deleteGame() {
+        viewAllGames();
         int id = InputUtil.intInput("Enter the game ID you want to delete: ");
         try {
             boolean result = gameService.deleteGame(id);
@@ -221,12 +229,12 @@ public class AdminView {
         System.out.println("1. View All Admin\n2. View All Users");
         List<User> users = null;
 
-        int input = InputUtil.intInput("Select: ");
+        String input = InputUtil.stringInput("Select: ");
         switch (input) {
-            case 1 -> {
+            case "1" -> {
                 users = userService.getAll(UserRole.ADMIN);
             }
-            case 2 -> {
+            case "2" -> {
                 users = userService.getAll(UserRole.CUSTOMER);
             }
             default -> ColorUtil.printError("Please input a valid number!");
@@ -317,6 +325,20 @@ public class AdminView {
         }
     }
 
+    private void transactionHistory() {
+        LocalDate fromDate = InputUtil.dateInput("Enter the transaction history dates from the date: ");
+        LocalDate toDate = InputUtil.dateInput("Enter the transaction history dates up to the date: ");
+        ZoneId zone = ZoneId.systemDefault();
+        Instant fromInstant = fromDate.atStartOfDay(zone).toInstant();
+        Instant toInstant = toDate.atTime(LocalTime.MAX).atZone(zone).toInstant();
+        try {
+            List<Transaction> transactions = transactionService.findTransactionHistory(fromInstant, toInstant);
+            transactions.forEach(this::viewTransaction);
+        } catch (BusinessException exception) {
+            ColorUtil.printError("An error occurred: " + exception.getMessage());
+        }
+    }
+
     private void viewGame(Game game) {
         System.out.println("\n========================================================");
         System.out.println("Game Id       : " + game.getId());
@@ -333,5 +355,20 @@ public class AdminView {
 
         System.out.println("Release date  : " + game.getRelease_date());
         System.out.println("========================================================\n");
+    }
+
+    private void viewTransaction(Transaction transaction) {
+        try {
+            System.out.println("\n========================================================");
+            System.out.println("Transaction Id    : " + transaction.getId());
+            System.out.println("User Id           : " + transaction.getUserId() + " (" + userService.findUser(transaction.getUserId()).getUsername() + ")");
+            System.out.println("Game Id           : " + transaction.getGameId() + " (" + gameService.findGame(transaction.getGameId()).getTitle() + ")");
+            System.out.println("Price             : Rp. " + InputUtil.decimalFormat(transaction.getAmount()));
+            System.out.println("Status            : " + transaction.getStatus().getDisplayName());
+            System.out.println("Transaction Date  : " + InputUtil.formatDate(transaction.getTransactionDate()));
+            System.out.println("========================================================\n");
+        } catch (ResourceNotFoundException exception) {
+            ColorUtil.printError("An error occurred: " + exception.getMessage());
+        }
     }
 }
