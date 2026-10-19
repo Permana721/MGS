@@ -95,6 +95,38 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public boolean addBalance(int id, BigDecimal balance) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User with id " + id + " not found"));
+
+        if (balance.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessValidationException("Inefficient Balance! Remaining balance: Rp. "
+                    + InputUtil.decimalFormat(user.getBalance()));
+        }
+        if (!user.isIs_active()) {
+            throw new BusinessValidationException("User must be active! please contact admin for activate your account.");
+        }
+        return userRepository.topup(id, balance);
+    }
+
+    @Override
+    public boolean decreaseBalance(Connection connection, User user, BigDecimal balance) throws SQLException {
+        if (balance.compareTo(BigDecimal.ZERO) == 0) {
+            throw new BusinessValidationException("Inefficient Balance!");
+        }
+
+        if (!user.isIs_active()) {
+            throw new BusinessValidationException("User must be active! please contact admin for activate your account.");
+        }
+
+        if (user.getBalance().compareTo(balance) <  0) {
+            throw new BusinessValidationException("Inefficient Balance! Remaining balance: Rp. " + InputUtil.decimalFormat(user.getBalance()));
+        }
+
+        return userRepository.deductBalance(connection, user, balance);
+    }
+
+    @Override
     public List<User> getAll(UserRole role) {
         if (role == null) {
             throw new BusinessValidationException("Role cannot be null!");
