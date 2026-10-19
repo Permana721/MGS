@@ -95,7 +95,7 @@ public class MainMenuView {
             User currentUser = userService.authenticate(username, password);
 
             if(currentUser.getUserRole().equals(UserRole.ADMIN)) {
-                AdminView adminView = new AdminView(userService, gameService, currentUser);
+                AdminView adminView = new AdminView(userService, gameService, transactionService, currentUser);
                 adminView.showMenu();
             } else {
                 CustomerView customerView = new CustomerView(userService, gameService, transactionService, currentUser);
@@ -104,7 +104,7 @@ public class MainMenuView {
         } catch (BusinessException exception) {
             ColorUtil.printError("Login failed: " + exception.getMessage());
         } catch (Exception exception) {
-            ColorUtil.printError("System error occurred. Please try again later!");
+            ColorUtil.printError("System error occurred: " + exception.getMessage());
         }
     }
 }
