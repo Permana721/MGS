@@ -1,9 +1,6 @@
 package mana.game.shop.service;
 
-import mana.game.shop.entity.Game;
-import mana.game.shop.entity.GameType;
-import mana.game.shop.entity.Transaction;
-import mana.game.shop.entity.User;
+import mana.game.shop.entity.*;
 import mana.game.shop.exception.AuthenticationException;
 import mana.game.shop.exception.BusinessException;
 import mana.game.shop.exception.BusinessValidationException;
@@ -19,6 +16,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -58,7 +56,7 @@ public class TransactionServiceImpl implements TransactionService {
             connection = DatabaseUtil.getDataSource().getConnection();
             connection.setAutoCommit(false);
 
-            boolean balanceDeducted = decreaseBalance(connection, user, game.getPrice());
+            boolean balanceDeducted = userRepository.deductBalance(connection, user, game.getPrice());
             if (!balanceDeducted) {
                 throw new BusinessValidationException("Failed to deduct balance.");
             }
@@ -96,33 +94,40 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    public boolean addBalance(int id, BigDecimal balance) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User with id " + id + " not found"));
-        if (balance.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BusinessValidationException("Inefficient Balance! Remaining balance: Rp. " + InputUtil.decimalFormat(user.getBalance()));
-        }
-        if (!user.isIs_active()) {
-            throw new BusinessValidationException("User must be active! please contact admin for activate your account.");
-        }
-        return transactionRepository.topup(id, balance);
-    }
+    public boolean refundGame(int transactionId, int userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User with Id " + userId + " not found!"));
+        Transaction transaction = transactionRepository.findTransaction(transactionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found!"));
 
-    @Override
-    public boolean decreaseBalance(Connection connection, User user, BigDecimal balance) throws SQLException {
-        if (balance.compareTo(BigDecimal.ZERO) == 0) {
-            throw new BusinessValidationException("Inefficient Balance!");
+        if (user.getId() != transaction.getUserId()) {
+            throw new BusinessValidationException("This transaction isn't yours!");
         }
 
-        if (!user.isIs_active()) {
-            throw new BusinessValidationException("User must be active! please contact admin for activate your account.");
+        if (transaction.getTransactionDate().isBefore(Instant.now().minus(7, ChronoUnit.DAYS))) {
+            throw new BusinessValidationException("The 7-day refund deadline has passed");
         }
 
-        if (user.getBalance().compareTo(balance) <  0) {
-            throw new BusinessValidationException("Inefficient Balance! Remaining balance: Rp. " + InputUtil.decimalFormat(user.getBalance()));
+        if (transaction.getStatus().equals(TransactionStatus.REFUNDED)) {
+            throw new BusinessValidationException("This transaction has already been refunded.");
+        } else if (transaction.getStatus().equals(TransactionStatus.PENDING)) {
+            throw new BusinessValidationException("This transaction has not been completed!");
+        } else if (transaction.getStatus().equals(TransactionStatus.FAILED)) {
+            throw new BusinessValidationException("This transaction failed to process, so you cannot request a refund");
         }
 
-        return transactionRepository.deductBalance(connection, user, balance);
+        Connection connection = null;
+        try {
+            connection = DatabaseUtil.getDataSource().getConnection();
+            connection.setAutoCommit(false);
+            userRepository.topup(userId, transaction.getAmount());
+
+        } catch (SQLException exception) {
+            throw new RuntimeException(exception.getMessage());
+        }
+
+
+        return false;
     }
 
     @Override
