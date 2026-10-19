@@ -64,11 +64,19 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
+    public Game addGameStock(Connection connection, int id, int stock) throws SQLException {
+        checkTypeGame(id);
+        findGame(id);
+        return gameRepository.addStock(connection, id, stock)
+                .orElseThrow(() -> new BusinessValidationException("An error occurred."));
+    }
+
+    @Override
     public Game decreaseGameStock(Connection connection, int id, int stock) throws SQLException {
         checkTypeGame(id);
         findGame(id);
         return gameRepository.decreaseStock(connection, id, stock)
-                .orElseThrow(() -> new BusinessValidationException(""));
+                .orElseThrow(() -> new BusinessValidationException("An error occurred."));
     }
 
     @Override
