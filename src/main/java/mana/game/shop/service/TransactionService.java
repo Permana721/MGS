@@ -12,8 +12,7 @@ import java.util.List;
 
 public interface TransactionService {
     boolean buyGame(int userId, int gameId) throws SQLException;
-    boolean addBalance(int id, BigDecimal balance);
-    boolean decreaseBalance(Connection connection, User user, BigDecimal balance) throws SQLException;
+    boolean refundGame(int userId, int gameId);
     List<Transaction> findTransactionById(int userId);
     List<Transaction> findTransactionHistory(Instant fromDate, Instant toDate);
 }
