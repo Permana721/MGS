@@ -17,6 +17,8 @@ import mana.game.shop.util.InputUtil;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,7 +48,7 @@ public class TransactionServiceImpl implements TransactionService {
             throw new BusinessValidationException("User already owns this digital game!");
         }
 
-        if (user.getBalance().compareTo(game.getPrice()) <= 0) {
+        if (user.getBalance().compareTo(game.getPrice()) < 0) {
             throw new AuthenticationException("User balance is insufficient");
         }
 
@@ -76,11 +78,13 @@ public class TransactionServiceImpl implements TransactionService {
 
         } catch (Exception exception) {
             try {
-                connection.rollback();
+                if (connection != null) {
+                    connection.rollback();
+                }
             } catch (SQLException e) {
                 throw new RuntimeException(e.getMessage());
             }
-            throw new BusinessValidationException("Transaction failed and rolled back: " + exception.getMessage());
+            throw new BusinessValidationException(exception.getMessage());
         } finally {
             if (connection != null) {
                 try {
@@ -114,11 +118,24 @@ public class TransactionServiceImpl implements TransactionService {
             throw new BusinessValidationException("User must be active! please contact admin for activate your account.");
         }
 
-        if (user.getBalance().compareTo(balance) <=  0) {
+        if (user.getBalance().compareTo(balance) <  0) {
             throw new BusinessValidationException("Inefficient Balance! Remaining balance: Rp. " + InputUtil.decimalFormat(user.getBalance()));
         }
 
         return transactionRepository.deductBalance(connection, user, balance);
+    }
+
+    @Override
+    public List<Transaction> findTransactionHistory(Instant fromDate, Instant toDate) {
+        if (fromDate == null || toDate == null) {
+            throw new BusinessValidationException("Both start date and end date are required!");
+        }
+
+        if (fromDate.isAfter(toDate)) {
+            throw new BusinessValidationException("From date (" + fromDate + ") cannot be later than To date (" + toDate + ")!");
+        }
+
+        return transactionRepository.findTransctionsByDate(fromDate, toDate);
     }
 
     @Override
