@@ -10,6 +10,7 @@ public class Transaction {
     private BigDecimal amount;
     private TransactionStatus status;
     private Instant transactionDate;
+    private Instant updated_at;
 
     public Transaction(int userId, int gameId, BigDecimal amount) {
         this.userId = userId;
@@ -67,5 +68,13 @@ public class Transaction {
 
     public Instant getTransactionDate() {
         return transactionDate;
+    }
+
+    public Instant getUpdated_at() {
+        return updated_at;
+    }
+
+    public void setUpdated_at(Instant updated_at) {
+        this.updated_at = updated_at;
     }
 }
