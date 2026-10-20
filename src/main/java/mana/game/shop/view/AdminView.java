@@ -8,6 +8,7 @@ import mana.game.shop.service.GameService;
 import mana.game.shop.service.TransactionService;
 import mana.game.shop.service.UserService;
 import mana.game.shop.util.ColorUtil;
+import mana.game.shop.util.DateUtil;
 import mana.game.shop.util.InputUtil;
 
 import java.math.BigDecimal;
@@ -21,9 +22,9 @@ import java.util.List;
 import java.util.Objects;
 
 public class AdminView {
-    private UserService userService;
-    private GameService gameService;
-    private TransactionService transactionService;
+    private final UserService userService;
+    private final GameService gameService;
+    private final TransactionService transactionService;
     private final User currentUser;
 
     public AdminView(UserService userService, GameService gameService, TransactionService transactionService,  User currentUser) {
@@ -74,12 +75,21 @@ public class AdminView {
         Integer size = null;
         Integer stock = null;
         String title = InputUtil.stringInput("Input game title: ");
-        String categoryInput = InputUtil.stringInput("Select game category" +
-                "\n1. Action\n2. RPG\n3. Sports \n4. Strategy\n5. Adventure\nSelect: ");
+        String categoryInput = InputUtil.stringInput("""
+                Select game category
+                1. Action
+                2. RPG
+                3. Sports\s
+                4. Strategy
+                5. Adventure
+                Select:\s""");
         BigDecimal price = InputUtil.bigDecimalInput("Input game price: ");
-        String typeInput = InputUtil.stringInput("Select game type" +
-                "\n1. Digital\n2. Physical\nSelect: ");
-        LocalDate dateInput = InputUtil.dateInput("Input release date with format yyyy-MM-dd: ");
+        String typeInput = InputUtil.stringInput("""
+                Select game type
+                1. Digital
+                2. Physical
+                Select:\s""");
+        LocalDate dateInput = DateUtil.dateInput("Input release date with format yyyy-MM-dd: ");
 
         switch (categoryInput) {
             case "1" -> gameCategory = GameCategory.ACTION;
@@ -176,7 +186,7 @@ public class AdminView {
                     }
                 }
                 case "5" -> {
-                    LocalDate newDate = InputUtil.dateInput("Input new release date");
+                    LocalDate newDate = DateUtil.dateInput("Input new release date");
                     selectedGame.setRelease_date(newDate);
                 }
                 case "0" -> {
@@ -231,12 +241,8 @@ public class AdminView {
 
         String input = InputUtil.stringInput("Select: ");
         switch (input) {
-            case "1" -> {
-                users = userService.getAll(UserRole.ADMIN);
-            }
-            case "2" -> {
-                users = userService.getAll(UserRole.CUSTOMER);
-            }
+            case "1" -> users = userService.getAll(UserRole.ADMIN);
+            case "2" -> users = userService.getAll(UserRole.CUSTOMER);
             default -> ColorUtil.printError("Please input a valid number!");
         }
 
@@ -326,8 +332,8 @@ public class AdminView {
     }
 
     private void transactionHistory() {
-        LocalDate fromDate = InputUtil.dateInput("Enter the transaction history dates from the date: ");
-        LocalDate toDate = InputUtil.dateInput("Enter the transaction history dates up to the date: ");
+        LocalDate fromDate = DateUtil.dateInput("Enter the transaction history dates from the date: ");
+        LocalDate toDate = DateUtil.dateInput("Enter the transaction history dates up to the date: ");
         ZoneId zone = ZoneId.systemDefault();
         Instant fromInstant = fromDate.atStartOfDay(zone).toInstant();
         Instant toInstant = toDate.atTime(LocalTime.MAX).atZone(zone).toInstant();
@@ -365,7 +371,7 @@ public class AdminView {
             System.out.println("Game Id           : " + transaction.getGameId() + " (" + gameService.findGame(transaction.getGameId()).getTitle() + ")");
             System.out.println("Price             : Rp. " + InputUtil.decimalFormat(transaction.getAmount()));
             System.out.println("Status            : " + transaction.getStatus().getDisplayName());
-            System.out.println("Transaction Date  : " + InputUtil.formatDate(transaction.getTransactionDate()));
+            System.out.println("Transaction Date  : " + DateUtil.formatDate(transaction.getTransactionDate()));
             System.out.println("========================================================\n");
         } catch (ResourceNotFoundException exception) {
             ColorUtil.printError("An error occurred: " + exception.getMessage());
