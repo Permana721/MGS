@@ -2,7 +2,6 @@ package mana.game.shop.repository;
 
 import mana.game.shop.entity.Transaction;
 import mana.game.shop.entity.TransactionStatus;
-import mana.game.shop.entity.User;
 import mana.game.shop.util.DatabaseUtil;
 
 import javax.sql.DataSource;
@@ -12,15 +11,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class TransactionRepositoryImpl implements TransactionRepository {
-    private DataSource dataSource;
+    private final DataSource dataSource;
 
     public TransactionRepositoryImpl (DataSource dataSource) {
         this.dataSource = dataSource;
@@ -29,11 +26,11 @@ public class TransactionRepositoryImpl implements TransactionRepository {
     @Override
     public boolean saveTransaction(Connection connection, int userId, int gameId, BigDecimal amount) {
         String sql = """
-                INSERT INTO transactions 
-                (user_id, game_id, amount) 
-                VALUES 
+                INSERT INTO transactions\s
+                (user_id, game_id, amount)\s
+                VALUES\s
                 (?, ?, ?)
-                """;
+               \s""";
 
         try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
             preparedStatement.setInt(1, userId);
@@ -47,11 +44,38 @@ public class TransactionRepositoryImpl implements TransactionRepository {
     }
 
     @Override
+    public Optional<Transaction> update(Connection connection, int id, TransactionStatus status) {
+        String sql = """
+                UPDATE transactions
+                SET status = ?::transaction_status,
+                updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?\s
+                RETURNING status, updated_at
+               \s""";
+
+        try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
+            preparedStatement.setString(1, status.name());
+            preparedStatement.setInt(2, id);
+
+            try(ResultSet resultSet = preparedStatement.executeQuery()){
+                if (resultSet.next()) {
+                    return Optional.of(rowHelper(resultSet));
+                }
+            } catch (SQLException exception) {
+                throw new RuntimeException(exception.getMessage());
+            }
+            return Optional.empty();
+        } catch (SQLException exception) {
+            throw new RuntimeException(exception.getMessage());
+        }
+    }
+
+    @Override
     public List<Transaction> findAllByUserId(int userId) {
         String sql = """
-                SELECT * FROM transactions 
+                SELECT * FROM transactions\s
                 WHERE user_id = ?
-                """;
+               \s""";
         List<Transaction> transactions = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection();
@@ -76,12 +100,12 @@ public class TransactionRepositoryImpl implements TransactionRepository {
     @Override
     public boolean existsByUserIdAndGameId(int userId, int gameId) {
         String sql = """
-                SELECT EXISTS 
-                (SELECT 1 FROM transactions 
-                WHERE user_id = ? 
+                SELECT EXISTS\s
+                (SELECT 1 FROM transactions\s
+                WHERE user_id = ?\s
                 AND game_id = ?)
                 FOR UPDATE
-                """;
+               \s""";
 
         try (Connection connection = dataSource.getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
@@ -102,13 +126,13 @@ public class TransactionRepositoryImpl implements TransactionRepository {
     }
 
     @Override
-    public List<Transaction> findTransctionsByDate(Instant fromDate, Instant toDate) {
+    public List<Transaction> findTransactionsByDate(Instant fromDate, Instant toDate) {
         String sql = """
                 SELECT * FROM transactions
-                WHERE created_at 
-                BETWEEN ? AND ? 
+                WHERE created_at\s
+                BETWEEN ? AND ?\s
                 ORDER BY created_at DESC
-                """;
+               \s""";
 
         List<Transaction> transactions = new ArrayList<>();
 
@@ -163,6 +187,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
         transaction.setAmount(resultSet.getBigDecimal("amount"));
         transaction.setStatus(transactionStatus);
         transaction.setTransactionDate(DatabaseUtil.getInstant(resultSet, "created_at"));
+        transaction.setUpdated_at(DatabaseUtil.getInstant(resultSet, "updated_at"));
         return transaction;
     }
 }
