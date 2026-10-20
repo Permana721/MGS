@@ -9,22 +9,21 @@ import mana.game.shop.service.GameService;
 import mana.game.shop.service.TransactionService;
 import mana.game.shop.service.UserService;
 import mana.game.shop.util.ColorUtil;
+import mana.game.shop.util.DateUtil;
 import mana.game.shop.util.InputUtil;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
-import java.time.Instant;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class CustomerView {
-    private UserService userService;
-    private GameService gameService;
-    private TransactionService transactionService;
+    private final UserService userService;
+    private final GameService gameService;
+    private final TransactionService transactionService;
     private User currentUser;
 
     public CustomerView(UserService userService, GameService gameService,  TransactionService transactionService, User currentUser) {
@@ -108,12 +107,21 @@ public class CustomerView {
     }
 
     private void refundGame() {
-        displayUserTransactions(currentUser);
+        filterUserTransaction(currentUser);
 
-        String input = InputUtil.stringInput("Please select the id transaction you wish to refund (Refunds are only available for transactions from the last 7 days): ");
+        int input = InputUtil.intInput("Please select the id transaction you wish to refund (Refunds are only available for transactions from the last 7 days): ");
+
+        boolean result = transactionService.refundTransaction(input, currentUser.getId());
+
+        if (result) {
+            ColorUtil.printSuccess("Success to refund transaction! Balance Rp. "
+                    + InputUtil.decimalFormat(transactionService.findTransaction(input).getAmount())
+                    + " and game " + gameService.findGame(transactionService.findTransaction(input).getGameId()).getTitle()
+                    + " refund successful!");
+        }
     }
 
-    private void searchGame() throws SQLException {
+    private void searchGame() {
         String name = InputUtil.stringInput("Input the name of game went you search: ");
         List<Game> games = gameService.findGamebyName(name);
         System.out.println(games.size() + " result for game with name " + name + " : ");
@@ -127,22 +135,22 @@ public class CustomerView {
         System.out.println("3. Change Password");
         System.out.println("0. Back");
 
-        int choice = InputUtil.intInput("Select: ");
+        String choice = InputUtil.stringInput("Select: ");
 
         switch (choice) {
-            case 1 -> {
+            case "1" -> {
                 String newUsername = InputUtil.stringInput("Input new username: ");
                 currentUser.setUsername(newUsername);
             }
-            case 2 -> {
+            case "2" -> {
                 String newEmail = InputUtil.stringInput("Input new email: ");
                 currentUser.setEmail(newEmail);
             }
-            case 3 -> {
+            case "3" -> {
                 String newPassword = InputUtil.stringInput("Input new password: ");
                 currentUser.setPassword(newPassword);
             }
-            case 0 -> {
+            case "0" -> {
                 return;
             }
             default -> {
@@ -180,7 +188,7 @@ public class CustomerView {
             System.out.print("Games owned: ");
             games.forEach(game -> System.out.print(game.getTitle() + " " + game.getGameType() + " VERSION,\n"));
         }
-        System.out.println("Member since: " + InputUtil.formatDate(currentUser.getCreated_at()));
+        System.out.println("Member since: " + DateUtil.formatDate(currentUser.getCreated_at()));
         System.out.println("========================================================\n");
     }
 
@@ -237,11 +245,29 @@ public class CustomerView {
         }
     }
 
-    private void printTransactionList(List<Transaction> list) {
-        for (Transaction tx : list) {
-            Game game = gameService.findGame(tx.getGameId());
-            String formattedDate = InputUtil.formatDate(tx.getTransactionDate());
-            String formattedPrice = InputUtil.decimalFormat(tx.getAmount());
+    private void filterUserTransaction(User currentUser) {
+        List<Transaction> transactions = transactionService.findTransactionById(currentUser.getId());
+
+        if (transactions.isEmpty()) {
+            ColorUtil.printError("No transaction history found.");
+        }
+
+        transactions.forEach(transaction -> {
+            if (!DateUtil.isOlderThanDays(transaction.getTransactionDate(), 7)) {
+                System.out.println("\n==================================");
+                System.out.println("Transaction id: " + transaction.getId());
+                System.out.println("Purchased games: " + gameService.findGame(transaction.getGameId()).getTitle());
+                System.out.println("Status: " + transaction.getStatus().getDisplayName());
+                System.out.println("Date of purchase: " + DateUtil.formatDate(transaction.getTransactionDate()));
+            }
+        });
+    }
+
+    private void printTransactionList(List<Transaction> transactions) {
+        for (Transaction transaction : transactions) {
+            Game game = gameService.findGame(transaction.getGameId());
+            String formattedDate = DateUtil.formatDate(transaction.getTransactionDate());
+            String formattedPrice = InputUtil.decimalFormat(transaction.getAmount());
 
             System.out.printf("- %s | Rp %s | Date: %s%n",
                     game.getTitle(), formattedPrice, formattedDate);
