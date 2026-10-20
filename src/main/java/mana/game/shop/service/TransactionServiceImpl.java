@@ -9,6 +9,7 @@ import mana.game.shop.repository.GameRepository;
 import mana.game.shop.repository.TransactionRepository;
 import mana.game.shop.repository.UserRepository;
 import mana.game.shop.util.DatabaseUtil;
+import mana.game.shop.util.DateUtil;
 import mana.game.shop.util.InputUtil;
 
 import java.math.BigDecimal;
@@ -56,7 +57,7 @@ public class TransactionServiceImpl implements TransactionService {
             connection = DatabaseUtil.getDataSource().getConnection();
             connection.setAutoCommit(false);
 
-            boolean balanceDeducted = userRepository.deductBalance(connection, user, game.getPrice());
+            boolean balanceDeducted = userRepository.decreaseBalance(connection, user, game.getPrice());
             if (!balanceDeducted) {
                 throw new BusinessValidationException("Failed to deduct balance.");
             }
@@ -94,17 +95,19 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    public boolean refundGame(int transactionId, int userId) {
+    public boolean refundTransaction(int transactionId, int userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with Id " + userId + " not found!"));
         Transaction transaction = transactionRepository.findTransaction(transactionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction with Id " + transactionId + " not found!"));
+        Game game = gameRepository.findById(transaction.getGameId())
+                .orElseThrow(() -> new ResourceNotFoundException("Game with Id " + transaction.getGameId() + " not found!"));
 
         if (user.getId() != transaction.getUserId()) {
             throw new BusinessValidationException("This transaction isn't yours!");
         }
 
-        if (transaction.getTransactionDate().isBefore(Instant.now().minus(7, ChronoUnit.DAYS))) {
+        if (DateUtil.isOlderThanDays(transaction.getTransactionDate(), 7)) {
             throw new BusinessValidationException("The 7-day refund deadline has passed");
         }
 
@@ -117,17 +120,44 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         Connection connection = null;
+
         try {
             connection = DatabaseUtil.getDataSource().getConnection();
             connection.setAutoCommit(false);
-            userRepository.topup(userId, transaction.getAmount());
-
+            userRepository.increaseBalance(userId, transaction.getAmount());
+            if (game.getGameType().equals(GameType.PHYSICAL)) {
+                gameRepository.addStock(connection, transaction.getGameId(), 1);
+            }
+            transactionRepository.update(connection, userId, TransactionStatus.REFUNDED)
+                    .orElseThrow(() -> new RuntimeException("Failed to process the transaction"));
+            connection.commit();
+            return true;
         } catch (SQLException exception) {
+            try {
+                if (connection != null) {
+                    connection.rollback();
+                }
+            } catch (SQLException exception1) {
+                throw new RuntimeException(exception1.getMessage());
+            }
             throw new RuntimeException(exception.getMessage());
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.setAutoCommit(true);
+                    connection.close();
+                } catch (SQLException exception) {
+                    throw new RuntimeException(exception.getMessage());
+                }
+            }
         }
+    }
 
-
-        return false;
+    @Override
+    public Transaction findTransaction(int id) {
+        if (id < 0) throw new BusinessValidationException("Please input a valid id!");
+        return transactionRepository.findTransaction(id)
+                .orElseThrow(() -> new RuntimeException("Transaction with id " + id + " not found!"));
     }
 
     @Override
@@ -140,7 +170,7 @@ public class TransactionServiceImpl implements TransactionService {
             throw new BusinessValidationException("From date (" + fromDate + ") cannot be later than To date (" + toDate + ")!");
         }
 
-        return transactionRepository.findTransctionsByDate(fromDate, toDate);
+        return transactionRepository.findTransactionsByDate(fromDate, toDate);
     }
 
     @Override
