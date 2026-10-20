@@ -140,59 +140,54 @@ public class GameRepositoryImpl implements GameRepository {
     }
 
     @Override
-    public Optional<Game> addStock(Connection connection, int id, int stock) throws SQLException {
+    public boolean addStock(Connection connection, int id, int stock) {
         String sql = """
                 UPDATE games\s
                 SET stock = stock + ?,\s
                 updated_at = CURRENT_TIMESTAMP\s
-                WHERE id = ? AND stock >= ?
-                RETURNING stock, updated_at
+                WHERE id = ? AND type = 'PHYSICAL'::game_type
                \s""";
 
-        PreparedStatement preparedStatement = connection.prepareStatement(sql);
+        try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
+            preparedStatement.setInt(1, stock);
+            preparedStatement.setInt(2, id);
 
-        preparedStatement.setInt(1, stock);
-        preparedStatement.setInt(2, id);
-        preparedStatement.setInt(3, stock);
+            int rowsUpdated = preparedStatement.executeUpdate();
+            return rowsUpdated > 0;
 
-        try(ResultSet resultSet = preparedStatement.executeQuery()){
-            if (resultSet.next()) {
-                rowHelper(resultSet).setStock(resultSet.getInt("stock"));
-                rowHelper(resultSet).setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
-                return Optional.of(rowHelper(resultSet));
-            }
         } catch (SQLException exception) {
-            throw new RuntimeException("Failed to decrease stock game: " + exception.getMessage());
+            throw new RuntimeException(exception.getMessage());
         }
-        return Optional.empty();
     }
 
     @Override
-    public Optional<Game> decreaseStock(Connection connection, int id, int stock) throws SQLException {
+    public Optional<Game> decreaseStock(Connection connection, int id, int stock) {
         String sql = """
                 UPDATE games\s
                 SET stock = stock - ?,\s
                 updated_at = CURRENT_TIMESTAMP\s
-                WHERE id = ? AND stock >= ?
+                WHERE id = ? AND type = 'PHYSICAL'::game_type
                 RETURNING stock, updated_at
                \s""";
 
-        PreparedStatement preparedStatement = connection.prepareStatement(sql);
+        try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
+            preparedStatement.setInt(1, stock);
+            preparedStatement.setInt(2, id);
+            preparedStatement.setInt(3, stock);
 
-        preparedStatement.setInt(1, stock);
-        preparedStatement.setInt(2, id);
-        preparedStatement.setInt(3, stock);
-
-        try(ResultSet resultSet = preparedStatement.executeQuery()){
-            if (resultSet.next()) {
-                rowHelper(resultSet).setStock(resultSet.getInt("stock"));
-                rowHelper(resultSet).setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
-                return Optional.of(rowHelper(resultSet));
+            try(ResultSet resultSet = preparedStatement.executeQuery()){
+                if (resultSet.next()) {
+                    return Optional.of(rowHelper(resultSet));
+                }
+            } catch (SQLException exception) {
+                throw new RuntimeException("Failed to decrease stock game: " + exception.getMessage());
             }
+
+            return Optional.empty();
+
         } catch (SQLException exception) {
-            throw new RuntimeException("Failed to decrease stock game: " + exception.getMessage());
+            throw new RuntimeException(exception.getMessage());
         }
-        return Optional.empty();
     }
 
     @Override
@@ -201,6 +196,7 @@ public class GameRepositoryImpl implements GameRepository {
                 SELECT * FROM games
                 WHERE id = ?
                 """;
+
         try(Connection connection = dataSource.getConnection()){
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
             preparedStatement.setInt(1, id);
@@ -210,10 +206,12 @@ public class GameRepositoryImpl implements GameRepository {
                     return Optional.of(game);
                 }
             }
+
+            return Optional.empty();
+
         } catch (SQLException exception) {
             throw new RuntimeException("Failed to search game: " + exception.getMessage());
         }
-        return Optional.empty();
     }
 
     @Override
