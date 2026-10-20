@@ -106,11 +106,11 @@ public class UserServiceImpl implements UserService {
         if (!user.isIs_active()) {
             throw new BusinessValidationException("User must be active! please contact admin for activate your account.");
         }
-        return userRepository.topup(id, balance);
+        return userRepository.increaseBalance(id, balance);
     }
 
     @Override
-    public boolean decreaseBalance(Connection connection, User user, BigDecimal balance) throws SQLException {
+    public boolean decreaseBalance(Connection connection, User user, BigDecimal balance) {
         if (balance.compareTo(BigDecimal.ZERO) == 0) {
             throw new BusinessValidationException("Inefficient Balance!");
         }
@@ -123,7 +123,7 @@ public class UserServiceImpl implements UserService {
             throw new BusinessValidationException("Inefficient Balance! Remaining balance: Rp. " + InputUtil.decimalFormat(user.getBalance()));
         }
 
-        return userRepository.deductBalance(connection, user, balance);
+        return userRepository.decreaseBalance(connection, user, balance);
     }
 
     @Override
