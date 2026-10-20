@@ -12,7 +12,8 @@ import java.util.List;
 
 public interface TransactionService {
     boolean buyGame(int userId, int gameId) throws SQLException;
-    boolean refundGame(int userId, int gameId);
+    boolean refundTransaction(int transactionId, int userId);
+    Transaction findTransaction(int id);
     List<Transaction> findTransactionById(int userId);
     List<Transaction> findTransactionHistory(Instant fromDate, Instant toDate);
 }
