@@ -113,7 +113,7 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public boolean topup(int id, BigDecimal balance) {
+    public boolean increaseBalance(int id, BigDecimal balance) {
         String sql = """
                 UPDATE users 
                 set balance = balance + ?, 
@@ -135,7 +135,7 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public boolean deductBalance(Connection connection, User user, BigDecimal amount) throws SQLException {
+    public boolean decreaseBalance(Connection connection, User user, BigDecimal amount) {
         String sql = """
                 UPDATE users 
                 SET balance = balance - ?,
@@ -155,7 +155,11 @@ public class UserRepositoryImpl implements UserRepository {
                     user.setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
                     return true;
                 }
+            } catch (SQLException exception) {
+                throw new RuntimeException(exception.getMessage());
             }
+        } catch (SQLException exception) {
+            throw new RuntimeException(exception.getMessage());
         }
         return false;
     }
