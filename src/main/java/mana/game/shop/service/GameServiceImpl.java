@@ -55,7 +55,7 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
-    public List<Game> findGamebyName(String title) throws SQLException {
+    public List<Game> findGamebyName(String title) {
         if (title.isBlank()) {
             throw new BusinessValidationException("Search keyword cannot be empty!");
         }
@@ -64,15 +64,14 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
-    public Game addGameStock(Connection connection, int id, int stock) throws SQLException {
+    public boolean addGameStock(Connection connection, int id, int stock) {
         checkTypeGame(id);
         findGame(id);
-        return gameRepository.addStock(connection, id, stock)
-                .orElseThrow(() -> new BusinessValidationException("An error occurred."));
+        return gameRepository.addStock(connection, id, stock);
     }
 
     @Override
-    public Game decreaseGameStock(Connection connection, int id, int stock) throws SQLException {
+    public Game decreaseGameStock(Connection connection, int id, int stock) {
         checkTypeGame(id);
         findGame(id);
         return gameRepository.decreaseStock(connection, id, stock)
