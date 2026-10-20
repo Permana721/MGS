@@ -11,9 +11,9 @@ public interface GameRepository {
     Optional<Game> save(Game game);
     Optional<Game> update(Game game);
     boolean delete(int id);
-    Optional<Game> addStock(Connection connection, int id, int stock) throws SQLException;
-    Optional<Game> decreaseStock(Connection connection, int id, int stock) throws SQLException;
+    boolean addStock(Connection connection, int id, int stock);
+    Optional<Game> decreaseStock(Connection connection, int id, int stock);
     Optional<Game> findById(int id);
-    List<Game> findByName(String name) throws SQLException;
+    List<Game> findByName(String name);
     List<Game> findAll();
 }
