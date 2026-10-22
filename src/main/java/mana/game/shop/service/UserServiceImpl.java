@@ -106,7 +106,7 @@ public class UserServiceImpl implements UserService {
         if (!user.isIs_active()) {
             throw new BusinessValidationException("User must be active! please contact admin for activate your account.");
         }
-        return userRepository.increaseBalance(id, balance);
+        return userRepository.topup(id, balance);
     }
 
     @Override
