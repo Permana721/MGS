@@ -16,6 +16,7 @@ public interface TransactionRepository {
     boolean saveTransaction(Connection connection, int userId, int gameId, BigDecimal amount);
     Optional<Transaction> update(Connection connection, int id, TransactionStatus status);
     List<Transaction> findAllByUserId(int UserId);
+    List<Transaction> filteredFindAllByUserId(int userId);
     List<Transaction> findTransactionsByDate(Instant fromDate, Instant toDate);
     Optional<Transaction> findTransaction(int id);
     boolean existsByUserIdAndGameId(int userId, int gameId);
