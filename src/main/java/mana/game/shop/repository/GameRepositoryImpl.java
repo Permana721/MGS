@@ -8,6 +8,7 @@ import mana.game.shop.util.DatabaseUtil;
 import javax.sql.DataSource;
 import java.sql.*;
 import java.sql.Date;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.*;
@@ -167,13 +168,12 @@ public class GameRepositoryImpl implements GameRepository {
                 SET stock = stock - ?,\s
                 updated_at = CURRENT_TIMESTAMP\s
                 WHERE id = ? AND type = 'PHYSICAL'::game_type
-                RETURNING stock, updated_at
+                RETURNING *
                \s""";
 
         try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
             preparedStatement.setInt(1, stock);
             preparedStatement.setInt(2, id);
-            preparedStatement.setInt(3, stock);
 
             try(ResultSet resultSet = preparedStatement.executeQuery()){
                 if (resultSet.next()) {
@@ -251,6 +251,8 @@ public class GameRepositoryImpl implements GameRepository {
             digitalGame.setGameType(gameType);
             digitalGame.setSize(resultSet.getInt("size_mb"));
             digitalGame.setRelease_date(releaseDate);
+            digitalGame.setCreated_at(DatabaseUtil.getInstant(resultSet,"created_at"));
+            digitalGame.setUpdated_at(DatabaseUtil.getInstant(resultSet, "updated_at"));
             return digitalGame;
         } else {
             PhysicalGame physicalGame = new PhysicalGame();
@@ -261,6 +263,8 @@ public class GameRepositoryImpl implements GameRepository {
             physicalGame.setGameType(gameType);
             physicalGame.setStock(resultSet.getInt("stock"));
             physicalGame.setRelease_date(releaseDate);
+            physicalGame.setCreated_at(DatabaseUtil.getInstant(resultSet,"created_at"));
+            physicalGame.setUpdated_at(DatabaseUtil.getInstant(resultSet, "updated_at"));
             return physicalGame;
         }
     }
