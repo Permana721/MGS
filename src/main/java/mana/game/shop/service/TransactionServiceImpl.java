@@ -124,20 +124,27 @@ public class TransactionServiceImpl implements TransactionService {
         try {
             connection = DatabaseUtil.getDataSource().getConnection();
             connection.setAutoCommit(false);
-            userRepository.increaseBalance(userId, transaction.getAmount());
-            if (game.getGameType().equals(GameType.PHYSICAL)) {
-                gameRepository.addStock(connection, transaction.getGameId(), 1);
+            boolean increaseBalance = userRepository.increaseBalance(connection, userId, transaction.getAmount());
+            if (!increaseBalance) {
+                throw new BusinessValidationException("Failed to increase user balance");
             }
-            transactionRepository.update(connection, userId, TransactionStatus.REFUNDED)
-                    .orElseThrow(() -> new RuntimeException("Failed to process the transaction"));
-            connection.commit();
-            return true;
-        } catch (SQLException exception) {
+            if (game.getGameType().equals(GameType.PHYSICAL)) {
+                boolean addStock = gameRepository.addStock(connection, transaction.getGameId(), 1);
+                if (!addStock) {
+                    throw new BusinessValidationException("Failed to increase game stock");
+                }
+            }
+            Optional<Transaction> result = transactionRepository.update(connection, transactionId, TransactionStatus.REFUNDED);
+            if (result.isPresent()) {
+                connection.commit();
+                return true;
+            }
+        } catch (Exception exception) {
             try {
                 if (connection != null) {
                     connection.rollback();
                 }
-            } catch (SQLException exception1) {
+            } catch (Exception exception1) {
                 throw new RuntimeException(exception1.getMessage());
             }
             throw new RuntimeException(exception.getMessage());
@@ -151,6 +158,7 @@ public class TransactionServiceImpl implements TransactionService {
                 }
             }
         }
+        return false;
     }
 
     @Override
@@ -174,7 +182,16 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    public List<Transaction> filteredFindTransactionById(int userId) {
+        if (userId < 0) throw new BusinessValidationException("Please input a valid id!");
+        return transactionRepository.filteredFindAllByUserId(userId);
+    }
+
+    @Override
     public List<Transaction> findTransactionById(int userId) {
+        if (userId < 0) throw new BusinessValidationException("Please input a valid id!");
         return transactionRepository.findAllByUserId(userId);
     }
+
+
 }
