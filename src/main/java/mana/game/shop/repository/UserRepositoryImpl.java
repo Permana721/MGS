@@ -98,9 +98,9 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public boolean delete(int id) {
         String sql = """
-                DELETE FROM users 
+                DELETE FROM users\s
                 WHERE id = ?
-                """;
+               \s""";
         try(Connection connection = dataSource.getConnection()){
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
             preparedStatement.setInt(1, id);
@@ -113,16 +113,37 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public boolean increaseBalance(int id, BigDecimal balance) {
+    public boolean topup(int id, BigDecimal balance) {
         String sql = """
-                UPDATE users 
-                set balance = balance + ?, 
-                updated_at = CURRENT_TIMESTAMP 
+                UPDATE users\s
+                set balance = balance + ?,\s
+                updated_at = CURRENT_TIMESTAMP\s
                 WHERE id = ?
-                """;
+               \s""";
 
         try(Connection connection = dataSource.getConnection()){
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
+
+            preparedStatement.setBigDecimal(1, balance);
+            preparedStatement.setInt(2, id);
+
+            int rowsUpdated = preparedStatement.executeUpdate();
+            return rowsUpdated > 0;
+        } catch (SQLException exception) {
+            throw new RuntimeException(exception.getMessage(), exception);
+        }
+    }
+
+    @Override
+    public boolean increaseBalance(Connection connection, int id, BigDecimal balance) {
+        String sql = """
+                UPDATE users\s
+                set balance = balance + ?,\s
+                updated_at = CURRENT_TIMESTAMP\s
+                WHERE id = ?
+               \s""";
+
+        try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
 
             preparedStatement.setBigDecimal(1, balance);
             preparedStatement.setInt(2, id);
