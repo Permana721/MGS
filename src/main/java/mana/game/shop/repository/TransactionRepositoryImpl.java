@@ -50,7 +50,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
                 SET status = ?::transaction_status,
                 updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?\s
-                RETURNING status, updated_at
+                RETURNING *
                \s""";
 
         try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
@@ -59,7 +59,10 @@ public class TransactionRepositoryImpl implements TransactionRepository {
 
             try(ResultSet resultSet = preparedStatement.executeQuery()){
                 if (resultSet.next()) {
-                    return Optional.of(rowHelper(resultSet));
+                    Transaction transaction = rowHelper(resultSet);
+                    transaction.setStatus(TransactionStatus.valueOf(resultSet.getString("status")));
+                    transaction.setUpdated_at(DatabaseUtil.getInstant(resultSet, "updated_at"));
+                    return Optional.of(transaction);
                 }
             } catch (SQLException exception) {
                 throw new RuntimeException(exception.getMessage());
@@ -98,12 +101,43 @@ public class TransactionRepositoryImpl implements TransactionRepository {
     }
 
     @Override
+    public List<Transaction> filteredFindAllByUserId(int userId) {
+        String sql = """
+                SELECT * FROM transactions\s
+                WHERE user_id = ?
+                AND status = 'SUCCESS'::transaction_status
+                AND created_at >= CURRENT_TIMESTAMP - INTERVAL '7 days'
+                ORDER BY id DESC
+               \s""";
+        List<Transaction> transactions = new ArrayList<>();
+
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+            preparedStatement.setInt(1, userId);
+
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    Transaction transaction = rowHelper(resultSet);
+                    transactions.add(transaction);
+                }
+            }
+
+            return transactions;
+
+        } catch (SQLException exception) {
+            throw new RuntimeException("Failed to retrieve the user's transaction history: " + exception.getMessage(), exception);
+        }
+    }
+
+    @Override
     public boolean existsByUserIdAndGameId(int userId, int gameId) {
         String sql = """
                 SELECT EXISTS\s
                 (SELECT 1 FROM transactions\s
                 WHERE user_id = ?\s
-                AND game_id = ?)
+                AND game_id = ?
+                AND status = 'SUCCESS'::transaction_status)
                 FOR UPDATE
                \s""";
 
