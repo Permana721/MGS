@@ -39,38 +39,47 @@ public class AdminView {
 
     public void showMenu() {
         while (true) {
-            System.out.println("==================================");
+            System.out.println("\n==================================");
             System.out.println("Admin Menu");
             System.out.println("Welcome " + currentUser.getUsername());
             System.out.println("==================================");
-            System.out.println("1. Add game");
-            System.out.println("2. Edit game");
-            System.out.println("3. Delete game");
-            System.out.println("4. View all games");
-            System.out.println("5. View all person");
-            System.out.println("6. Ban/Unban user");
-            System.out.println("7. Add Admin");
-            System.out.println("8. View Transaction history");
-            System.out.println("9. Add cupons");
+            System.out.println("1. Game Management");
+            System.out.println("2. User Management");
+            System.out.println("3. Transaction History");
+            System.out.println("4. Cupon Management");
             System.out.println("0. Logout");
 
             String input = InputUtil.stringInput("Choice: ");
 
             switch (input){
-                case "1" -> addGame();
-                case "2" -> editGame();
-                case "3" -> deleteGame();
-                case "4" -> viewAllGames();
-                case "5" -> viewAllPerson();
-                case "6" -> banUser();
-                case "7" -> addAdmin();
-                case "8" -> transactionHistory();
-                case "9" -> addCupons();
+                case "1" -> gameManagement();
+                case "2" -> userManagement();
+                case "3" -> transactionHistory();
+                case "4" -> cuponManagement();
                 case "0" -> {
                     return;
                 }
                 default -> ColorUtil.printError("Please input a valid number!");
             }
+        }
+    }
+
+    private void gameManagement() {
+        System.out.println("\n============Game Management============");
+        System.out.println("1. Add game");
+        System.out.println("2. Edit game");
+        System.out.println("3. Delete game");
+        System.out.println("4. View all game");
+        System.out.println("0. Back");
+        int input = InputUtil.intInput("Choice: ");
+
+        switch (input) {
+            case 1 -> addGame();
+            case 2 -> editGame();
+            case 3 -> deleteGame();
+            case 4 -> viewAllGames();
+            case 0 -> showMenu();
+            default -> ColorUtil.printError("Please input a valid number!");
         }
     }
 
@@ -240,6 +249,23 @@ public class AdminView {
         }
     }
 
+    private void userManagement() {
+        System.out.println("\n============User Management============");
+        System.out.println("1. View all user");
+        System.out.println("2. Ban user");
+        System.out.println("3. Add admin");
+        System.out.println("0. Back");
+        int input = InputUtil.intInput("Choice: ");
+
+        switch (input) {
+            case 1 -> viewAllPerson();
+            case 2 -> banUser();
+            case 3 -> addAdmin();
+            case 0 -> showMenu();
+            default -> ColorUtil.printError("Please input a valid number!");
+        }
+    }
+
     private void viewAllPerson() {
         System.out.println("1. View All Admin\n2. View All Users");
         List<User> users = null;
@@ -350,15 +376,34 @@ public class AdminView {
         }
     }
 
-    private void addCupons() {
+    private void cuponManagement() {
+        System.out.println("\n============Coupon Management============");
+        System.out.println("1. Add coupon");
+        System.out.println("2. Edit coupon");
+        System.out.println("3. Delete coupon");
+        System.out.println("4. View all coupon");
+        System.out.println("0. Back");
+        int input = InputUtil.intInput("Choice: ");
+
+        switch (input) {
+            case 1 -> addCupon();
+            case 2 -> editGame();
+            case 3 -> deleteGame();
+            case 4 -> viewAllGames();
+            case 0 -> showMenu();
+            default -> ColorUtil.printError("Please input a valid number!");
+        }
+    }
+
+    private void addCupon() {
         String code = InputUtil.stringInput("Please input coupon code: ");
         BigDecimal discount_percent = InputUtil.bigDecimalInput("Please input discount percent: ");
         BigDecimal max_discount = InputUtil.bigDecimalInput("Please input max discount: ");
         BigDecimal min_purchase = InputUtil.bigDecimalInput("Please input min purchase: ");
         int usage_limit = InputUtil.intInput("Please input usage limit: ");
         int usage_count = InputUtil.intInput("Please input usage count: ");
-        LocalDate valid_from = DateUtil.dateInput("Please input coupon valid from, with format (YY:MM:DD): ");
-        LocalDate valid_until = DateUtil.dateInput("Please input coupon valid until, with format (YY:MM:DD): ");
+        Instant valid_from = DateUtil.instantInput("Please input coupon valid from");
+        Instant valid_until = DateUtil.instantInput("Please input coupon valid until");
         Coupon coupon = new Coupon(code, discount_percent, max_discount, min_purchase, usage_limit, usage_count, Instant.from(valid_from), Instant.from(valid_until));
 
         try {
