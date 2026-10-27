@@ -8,7 +8,6 @@ import mana.game.shop.util.DatabaseUtil;
 import javax.sql.DataSource;
 import java.sql.*;
 import java.sql.Date;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.*;
@@ -141,21 +140,27 @@ public class GameRepositoryImpl implements GameRepository {
     }
 
     @Override
-    public boolean addStock(Connection connection, int id, int stock) {
+    public Optional<Game> addStock(Connection connection, int id, int stock) {
         String sql = """
                 UPDATE games\s
                 SET stock = stock + ?,\s
                 updated_at = CURRENT_TIMESTAMP\s
                 WHERE id = ? AND type = 'PHYSICAL'::game_type
+                RETURNING *
                \s""";
 
         try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
             preparedStatement.setInt(1, stock);
             preparedStatement.setInt(2, id);
 
-            int rowsUpdated = preparedStatement.executeUpdate();
-            return rowsUpdated > 0;
-
+            try(ResultSet resultSet = preparedStatement.executeQuery()){
+                if (resultSet.next()) {
+                    return Optional.of(rowHelper(resultSet));
+                }
+            } catch (SQLException exception) {
+                throw new RuntimeException(exception.getMessage());
+            }
+            return Optional.empty();
         } catch (SQLException exception) {
             throw new RuntimeException(exception.getMessage());
         }
