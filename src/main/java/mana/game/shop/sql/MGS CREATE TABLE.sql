@@ -39,7 +39,7 @@ CREATE INDEX idx_games_category ON games(category);
 CREATE INDEX idx_games_title ON games(title);
 
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
-CREATE INDEX idx_games_title_trgm ON games USING gin (title gin_trgm_ops);
+CREATE INDEX idx_games_title_trgm ON games USING gin (titlegin_trgm_ops);
 
 COMMIT;
 -- END TABLE games
@@ -94,5 +94,38 @@ CREATE INDEX idx_transactions_user_id ON transactions(user_id);
 CREATE INDEX idx_transactions_game_id ON transactions(game_id);
 CREATE INDEX idx_transactions_created_at ON transactions(created_at DESC);
 
+ALTER TABLE transactions
+ADD COLUMN coupon_id INT REFERENCES coupons(id),
+ADD COLUMN original_amount NUMERIC(12, 2),
+ADD COLUMN discount_amount NUMERIC(12, 2) DEFAULT 0;
+
 COMMIT;
 -- END TABLE transactions
+
+-- CREATE TABLE coupons
+CREATE TABLE coupons (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    discount_percent NUMERIC(5, 2) NOT NULL,
+    max_discount NUMERIC(12, 2),
+    min_purchase NUMERIC(12, 2) DEFAULT 0,
+    usage_limit INT DEFAULT 1,
+    used_count INT DEFAULT 0,
+    valid_from TIMESTAMPTZ NOT NULL,
+    valid_until TIMESTAMPTZ NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+-- END TABLE coupons
+
+-- CREATE TABLE user_coupons
+CREATE TABLE user_coupons (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    coupon_id INT NOT NULL REFERENCES coupons(id) ON DELETE CASCADE,
+    used_at TIMESTAMPTZ,
+    is_redeemed BOOLEAN DEFAULT FALSE,
+    UNIQUE (user_id, coupon_id)
+);
+-- END TABLE user_coupons
