@@ -4,6 +4,7 @@ import mana.game.shop.entity.User;
 import mana.game.shop.entity.UserRole;
 import mana.game.shop.exception.AuthenticationException;
 import mana.game.shop.exception.BusinessException;
+import mana.game.shop.service.CouponService;
 import mana.game.shop.service.GameService;
 import mana.game.shop.service.TransactionService;
 import mana.game.shop.service.UserService;
@@ -16,11 +17,13 @@ public class MainMenuView {
     private UserService userService;
     private GameService gameService;
     private TransactionService transactionService;
+    final private CouponService couponService;
 
-    public MainMenuView(UserService userService, GameService gameService, TransactionService transactionService) {
+    public MainMenuView(UserService userService, GameService gameService, TransactionService transactionService, CouponService couponService) {
         this.userService = userService;
         this.gameService = gameService;
         this.transactionService = transactionService;
+        this.couponService = couponService;
     }
 
     public void showMainMenu() {
@@ -95,7 +98,7 @@ public class MainMenuView {
             User currentUser = userService.authenticate(username, password);
 
             if(currentUser.getUserRole().equals(UserRole.ADMIN)) {
-                AdminView adminView = new AdminView(userService, gameService, transactionService, currentUser);
+                AdminView adminView = new AdminView(userService, gameService, transactionService, couponService, currentUser);
                 adminView.showMenu();
             } else {
                 CustomerView customerView = new CustomerView(userService, gameService, transactionService, currentUser);
