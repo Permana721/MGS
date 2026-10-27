@@ -28,17 +28,29 @@ public class InputUtil {
     }
 
     public static double doubleInput(String info) {
-        System.out.print(info);
-        double value = scanner.nextDouble();
-        scanner.nextLine();
-        return value;
+        while (true) {
+            System.out.print(info);
+            String input = scanner.nextLine().trim();
+
+            try {
+                return Double.parseDouble(input);
+            } catch (NumberFormatException e) {
+                ColorUtil.printError("Invalid input! Please enter a valid number.");
+            }
+        }
     }
 
     public static BigDecimal bigDecimalInput(String info) {
-        System.out.print(info);
-        BigDecimal value = BigDecimal.valueOf(scanner.nextDouble());
-        scanner.nextLine();
-        return value;
+        while (true) {
+            System.out.print(info);
+            String input = scanner.nextLine().trim();
+
+            try {
+                return BigDecimal.valueOf(Integer.parseInt(input));
+            } catch (NumberFormatException e) {
+                ColorUtil.printError("Invalid input! Please enter a valid number.");
+            }
+        }
     }
 
     public static String decimalFormat(BigDecimal amount) {
