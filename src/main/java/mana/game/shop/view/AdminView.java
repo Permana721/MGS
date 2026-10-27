@@ -4,6 +4,7 @@ import mana.game.shop.entity.*;
 import mana.game.shop.exception.BusinessException;
 import mana.game.shop.exception.BusinessValidationException;
 import mana.game.shop.exception.ResourceNotFoundException;
+import mana.game.shop.service.CouponService;
 import mana.game.shop.service.GameService;
 import mana.game.shop.service.TransactionService;
 import mana.game.shop.service.UserService;
@@ -25,12 +26,14 @@ public class AdminView {
     private final UserService userService;
     private final GameService gameService;
     private final TransactionService transactionService;
+    private final CouponService couponService;
     private final User currentUser;
 
-    public AdminView(UserService userService, GameService gameService, TransactionService transactionService,  User currentUser) {
+    public AdminView(UserService userService, GameService gameService, TransactionService transactionService, CouponService couponService, User currentUser) {
         this.currentUser = currentUser;
         this.gameService = gameService;
         this.transactionService = transactionService;
+        this.couponService = couponService;
         this.userService = userService;
     }
 
@@ -48,6 +51,7 @@ public class AdminView {
             System.out.println("6. Ban/Unban user");
             System.out.println("7. Add Admin");
             System.out.println("8. View Transaction history");
+            System.out.println("9. Add cupons");
             System.out.println("0. Logout");
 
             String input = InputUtil.stringInput("Choice: ");
@@ -61,6 +65,7 @@ public class AdminView {
                 case "6" -> banUser();
                 case "7" -> addAdmin();
                 case "8" -> transactionHistory();
+                case "9" -> addCupons();
                 case "0" -> {
                     return;
                 }
@@ -342,6 +347,27 @@ public class AdminView {
             transactions.forEach(this::viewTransaction);
         } catch (BusinessException exception) {
             ColorUtil.printError("An error occurred: " + exception.getMessage());
+        }
+    }
+
+    private void addCupons() {
+        String code = InputUtil.stringInput("Please input coupon code: ");
+        BigDecimal discount_percent = InputUtil.bigDecimalInput("Please input discount percent: ");
+        BigDecimal max_discount = InputUtil.bigDecimalInput("Please input max discount: ");
+        BigDecimal min_purchase = InputUtil.bigDecimalInput("Please input min purchase: ");
+        int usage_limit = InputUtil.intInput("Please input usage limit: ");
+        int usage_count = InputUtil.intInput("Please input usage count: ");
+        LocalDate valid_from = DateUtil.dateInput("Please input coupon valid from, with format (YY:MM:DD): ");
+        LocalDate valid_until = DateUtil.dateInput("Please input coupon valid until, with format (YY:MM:DD): ");
+        Coupon coupon = new Coupon(code, discount_percent, max_discount, min_purchase, usage_limit, usage_count, Instant.from(valid_from), Instant.from(valid_until));
+
+        try {
+            Coupon savedCoupon = couponService.addCoupon(coupon);
+            if (coupon.getCode().equals(savedCoupon.getCode())) {
+                ColorUtil.printSuccess("Success to save coupon with code: " + coupon.getCode());
+            }
+        } catch (Exception exception) {
+            ColorUtil.printError(exception.getMessage());
         }
     }
 
