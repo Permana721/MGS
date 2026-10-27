@@ -12,7 +12,7 @@ public interface GameService {
     boolean deleteGame(int id);
     Game findGame(int id);
     List<Game> findGamebyName(String name);
-    boolean addGameStock(Connection connection, int id, int stock);
+    Game addGameStock(Connection connection, int id, int stock);
     Game decreaseGameStock(Connection connection, int id, int stock);
     List<Game> findAllGame();
 }
