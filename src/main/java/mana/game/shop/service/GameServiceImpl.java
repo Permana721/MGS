@@ -64,10 +64,11 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
-    public boolean addGameStock(Connection connection, int id, int stock) {
+    public Game addGameStock(Connection connection, int id, int stock) {
         checkTypeGame(id);
         findGame(id);
-        return gameRepository.addStock(connection, id, stock);
+        return gameRepository.addStock(connection, id, stock)
+                .orElseThrow(() -> new BusinessValidationException("Failed to add game stock"));
     }
 
     @Override
