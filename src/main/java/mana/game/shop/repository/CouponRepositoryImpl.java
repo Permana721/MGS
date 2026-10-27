@@ -12,6 +12,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 public class CouponRepositoryImpl implements CouponRepository{
@@ -40,8 +41,8 @@ public class CouponRepositoryImpl implements CouponRepository{
             preparedStatement.setBigDecimal(4, coupon.getMin_purchase());
             preparedStatement.setInt(5, coupon.getUsage_limit());
             preparedStatement.setInt(6, coupon.getUsed_count());
-            preparedStatement.setObject(7, coupon.getValid_from());
-            preparedStatement.setObject(8, coupon.getValid_until());
+            preparedStatement.setObject(7, coupon.getValid_from().atOffset(ZoneOffset.UTC));
+            preparedStatement.setObject(8, coupon.getValid_until().atOffset(ZoneOffset.UTC));
 
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
