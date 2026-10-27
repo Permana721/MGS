@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 public class TransactionServiceImpl implements TransactionService {
@@ -129,10 +130,8 @@ public class TransactionServiceImpl implements TransactionService {
                 throw new BusinessValidationException("Failed to increase user balance");
             }
             if (game.getGameType().equals(GameType.PHYSICAL)) {
-                boolean addStock = gameRepository.addStock(connection, transaction.getGameId(), 1);
-                if (!addStock) {
-                    throw new BusinessValidationException("Failed to increase game stock");
-                }
+                gameRepository.addStock(connection, transaction.getGameId(), 1)
+                        .orElseThrow(() -> new BusinessValidationException("Failed to increase game stock"));
             }
             Optional<Transaction> result = transactionRepository.update(connection, transactionId, TransactionStatus.REFUNDED);
             if (result.isPresent()) {
