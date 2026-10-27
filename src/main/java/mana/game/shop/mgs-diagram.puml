@@ -1,0 +1,248 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+left to right direction
+
+' ==========================================
+' EXTERNAL LIBRARIES & RUNTIME DEPENDENCIES
+' ==========================================
+package "External Dependencies (pom.xml)" <<Rectangle>> {
+    package "org.postgresql" {
+        class Driver
+    }
+
+    package "com.zaxxer.hikari" {
+        class HikariDataSource
+        class HikariConfig
+    }
+
+    package "org.mindrot.jbcrypt" {
+        class BCrypt
+    }
+
+    package "java.sql" {
+        interface Connection
+        interface PreparedStatement
+        interface ResultSet
+    }
+
+    package "java.time" {
+        class Instant
+        class LocalDate
+    }
+
+    package "java.math" {
+        class BigDecimal
+    }
+}
+
+' ==========================================
+' MGS APPLICATION PACKAGES
+' ==========================================
+package "mana.game.shop" {
+
+    package "entity" {
+        enum GameCategory {
+            ACTION
+            RPG
+            STRATEGY
+            SIMULATION
+            SPORTS
+        }
+
+        enum GameType {
+            PHYSICAL
+            DIGITAL
+        }
+
+        enum TransactionStatus {
+            PENDING
+            SUCCESS
+            FAILED
+            REFUNDED
+        }
+
+        class User {
+            - id : int
+            - username : String
+            - password : String
+            - balance : BigDecimal
+            - created_at : Instant
+            - updated_at : Instant
+        }
+
+        class Game {
+            - id : int
+            - title : String
+            - category : GameCategory
+            - price : BigDecimal
+            - type : GameType
+            - stock : Integer
+            - size : Integer
+            - release_date : LocalDate
+            - created_at : Instant
+            - updated_at : Instant
+        }
+
+        class Transaction {
+            - id : int
+            - userId : int
+            - gameId : int
+            - amount : BigDecimal
+            - status : TransactionStatus
+            - transactionDate : Instant
+        }
+    }
+
+    package "exception" {
+        class BusinessException
+        class BusinessValidationException extends BusinessException
+        class ResourceNotFoundException extends BusinessException
+        class AuthenticationException extends BusinessException
+        class DuplicateDataException extends BusinessException
+    }
+
+    package "util" {
+        class DatabaseUtil {
+            - {static} dataSource : HikariDataSource
+            + {static} getDataSource() : HikariDataSource
+        }
+
+        class PasswordUtil {
+            + {static} hashPassword(plain : String) : String
+            + {static} checkPassword(plain : String, hashed : String) : boolean
+        }
+
+        class DateUtil {
+            + {static} isWithinLastDays(target : Instant, days : long) : boolean
+            + {static} isOlderThanDays(target : Instant, days : long) : boolean
+        }
+
+        class CurrencyUtil {
+            + {static} decimalFormat(amount : BigDecimal) : String
+        }
+
+        class InputUtil {
+            + {static} bigDecimalInput(prompt : String) : BigDecimal
+            + {static} intInput(prompt : String) : int
+        }
+    }
+
+    package "repository" {
+        interface UserRepository {
+            + save(user : User) : Optional<User>
+            + findById(id : int) : Optional<User>
+            + findByUsername(username : String) : Optional<User>
+            + increaseBalance(conn : Connection, id : int, amount : BigDecimal) : boolean
+            + decreaseBalance(conn : Connection, id : int, amount : BigDecimal) : boolean
+        }
+
+        interface GameRepository {
+            + save(game : Game) : Optional<Game>
+            + findById(id : int) : Optional<Game>
+            + findAll() : List<Game>
+            + addStock(conn : Connection, id : int, stock : int) : boolean
+            + decreaseStock(conn : Connection, id : int, stock : int) : boolean
+        }
+
+        interface TransactionRepository {
+            + save(conn : Connection, tx : Transaction) : Optional<Transaction>
+            + findTransaction(id : int) : Optional<Transaction>
+            + findTransactionHistory(from : Instant, to : Instant) : List<Transaction>
+            + updateStatus(conn : Connection, id : int, status : TransactionStatus) : boolean
+        }
+
+        class UserRepositoryImpl implements UserRepository
+        class GameRepositoryImpl implements GameRepository
+        class TransactionRepositoryImpl implements TransactionRepository
+    }
+
+    package "service" {
+        interface UserService {
+            + register(user : User) : User
+            + login(user : String, pass : String) : User
+            + topUp(userId : int, amount : BigDecimal) : User
+        }
+
+        interface GameService {
+            + addGame(game : Game) : Game
+            + findGame(id : int) : Game
+            + getAllGames() : List<Game>
+        }
+
+        interface TransactionService {
+            + buyGame(userId : int, gameId : int) : boolean
+            + refundTransaction(transactionId : int, userId : int) : boolean
+            + findTransactionHistory(from : Instant, to : Instant) : List<Transaction>
+        }
+
+        class UserServiceImpl implements UserService
+        class GameServiceImpl implements GameService
+        class TransactionServiceImpl implements TransactionService
+    }
+
+    package "view" {
+        class MainMenuView {
+            - userService : UserService
+            - gameService : GameService
+            - transactionService : TransactionService
+            + showMainMenu() : void
+        }
+    }
+
+    class Main {
+        + {static} main(args : String[]) : void
+    }
+}
+
+' ==========================================
+' STRUCTURAL & BUSINESS RELATIONSHIPS
+' ==========================================
+Game --> GameCategory
+Game --> GameType
+Transaction --> TransactionStatus
+Transaction ..> User : references userId
+Transaction ..> Game : references gameId
+
+' Entities use Standard Data Types
+User --> BigDecimal
+User --> Instant
+Game --> BigDecimal
+Game --> LocalDate
+Transaction --> BigDecimal
+Transaction --> Instant
+
+' App to External Libs
+DatabaseUtil ..> HikariDataSource : manages pool
+HikariDataSource ..> Driver : uses PostgreSQL
+PasswordUtil ..> BCrypt : invokes hashing
+
+' Service & Repository Layer Wiring
+UserServiceImpl --> UserRepository
+GameServiceImpl --> GameRepository
+TransactionServiceImpl --> TransactionRepository
+TransactionServiceImpl --> UserRepository
+TransactionServiceImpl --> GameRepository
+TransactionServiceImpl ..> DateUtil : validates 7-day rule
+UserServiceImpl ..> PasswordUtil : hashes/verifies credentials
+
+' Repositories interact with JDBC
+UserRepositoryImpl ..> Connection : runs SQL
+GameRepositoryImpl ..> Connection : runs SQL
+TransactionRepositoryImpl ..> Connection : runs SQL
+UserRepositoryImpl ..> DatabaseUtil : gets connection pool
+GameRepositoryImpl ..> DatabaseUtil : gets connection pool
+TransactionRepositoryImpl ..> DatabaseUtil : gets connection pool
+
+' View Wiring
+MainMenuView --> UserService
+MainMenuView --> GameService
+MainMenuView --> TransactionService
+MainMenuView ..> InputUtil : CLI inputs
+MainMenuView ..> CurrencyUtil : formats balance
+
+' Main Entry Point
+Main ..> DatabaseUtil : initializes HikariCP
+Main ..> MainMenuView : bootstraps CLI
+@enduml
