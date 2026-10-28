@@ -8,6 +8,7 @@ import mana.game.shop.exception.ResourceNotFoundException;
 import mana.game.shop.repository.GameRepository;
 import mana.game.shop.repository.TransactionRepository;
 import mana.game.shop.repository.UserRepository;
+import mana.game.shop.util.ColorUtil;
 import mana.game.shop.util.DatabaseUtil;
 import mana.game.shop.util.DateUtil;
 import mana.game.shop.util.InputUtil;
@@ -130,8 +131,11 @@ public class TransactionServiceImpl implements TransactionService {
                 throw new BusinessValidationException("Failed to increase user balance");
             }
             if (game.getGameType().equals(GameType.PHYSICAL)) {
-                gameRepository.addStock(connection, transaction.getGameId(), 1)
-                        .orElseThrow(() -> new BusinessValidationException("Failed to increase game stock"));
+                try {
+                    gameRepository.addStock(connection, transaction.getGameId(), 1);
+                } catch (Exception exception) {
+                    ColorUtil.printError("Failed for add stock: " + exception.getMessage());
+                }
             }
             Optional<Transaction> result = transactionRepository.update(connection, transactionId, TransactionStatus.REFUNDED);
             if (result.isPresent()) {
