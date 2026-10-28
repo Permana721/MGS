@@ -48,7 +48,7 @@ public class DateUtil {
 
             try {
                 LocalDateTime localDateTime = LocalDateTime.parse(input, DATE_TIME_FORMATTER);
-                return localDateTime.toInstant(ZoneOffset.UTC);
+                return localDateTime.atZone(JAKARTA_ZONE).toInstant();
             } catch (DateTimeParseException exception) {
                 System.out.println("Invalid format! Please use 'yyyy-MM-dd HH:mm' (e.g., 2026-12-31 23:59).");
             }
