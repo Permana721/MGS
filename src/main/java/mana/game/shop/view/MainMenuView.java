@@ -69,18 +69,13 @@ public class MainMenuView {
 
         try {
             User newUser = new User(username, password, email, UserRole.CUSTOMER);
-            User createdUser = userService.addUser(newUser);
+            userService.addUser(newUser);
 
-            if (createdUser == null || createdUser.getUsername().isBlank()) {
-                ColorUtil.printError("Failed to create user. Please try again.");
-                return;
-            }
-
-            ColorUtil.printSuccess("User " + createdUser.getUsername() + " was successfully created!");
+            ColorUtil.printSuccess("User " + newUser.getUsername() + " was successfully created!");
         } catch (BusinessException exception) {
             ColorUtil.printError("Registration failed: " + exception.getMessage());
         } catch (Exception exception) {
-            ColorUtil.printError("System error occurred. Please try again later!");
+            ColorUtil.printError("System error occurred: " + exception.getMessage());
         }
     }
 
