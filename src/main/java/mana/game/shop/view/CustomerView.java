@@ -73,14 +73,17 @@ public class CustomerView {
             return;
         }
 
-        boolean result = userService.addBalance(currentUser.getId(), addedSaldo);
-        if (result) {
+        try {
+            userService.addBalance(currentUser.getId(), addedSaldo);
             currentUser = userService.findUser(currentUser.getId());
 
             System.out.println("Topup successfully!");
             System.out.println("Rp. " + InputUtil.decimalFormat(addedSaldo) + " was added into your account!");
             System.out.println("Current Balance: Rp. " + InputUtil.decimalFormat(currentUser.getBalance()));
+        } catch (Exception exception) {
+            ColorUtil.printError("An error occurred: " + exception.getMessage());
         }
+
     }
 
     private void buyGame() {
@@ -170,14 +173,10 @@ public class CustomerView {
         }
 
         try {
-            User updatedUser = userService.updateUser(currentUser);
-            if (updatedUser.getUsername().equalsIgnoreCase(currentUser.getUsername())) {
-                System.out.println("Profile updated successfully!");
-            } else {
-                System.out.println("Failed to update profile.");
-            }
-        } catch (Exception e) {
-            System.out.println("Error updating profile: " + e.getMessage());
+            userService.updateUser(currentUser);
+                ColorUtil.printSuccess("Profile updated successfully!");
+        } catch (Exception exception) {
+            ColorUtil.printError("Error updating profile: " + exception.getMessage());
         }
     }
 
