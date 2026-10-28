@@ -7,12 +7,12 @@ import java.sql.SQLException;
 import java.util.List;
 
 public interface GameService {
-    Game addGame(Game game);
-    Game updateGame(Game game);
-    boolean deleteGame(int id);
+    void addGame(Game game);
+    void updateGame(Game game);
+    void deleteGame(int id);
     Game findGame(int id);
     List<Game> findGamebyName(String name);
-    Game addGameStock(Connection connection, int id, int stock);
-    Game decreaseGameStock(Connection connection, int id, int stock);
+    void addGameStock(Connection connection, int id, int stock);
+    void decreaseGameStock(Connection connection, int id, int stock);
     List<Game> findAllGame();
 }
