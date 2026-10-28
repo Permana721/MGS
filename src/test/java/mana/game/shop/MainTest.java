@@ -9,11 +9,15 @@ import org.junit.jupiter.api.Test;
  */
 public class MainTest {
 
-    /**
-     * Rigorous Test :-)
-     */
     @Test
     public void shouldAnswerWithTrue() {
         assertTrue(true);
+    }
+
+    @Test
+    void name() {
+        Byte x = 127;
+        x++;
+        System.out.println(x);
     }
 }
