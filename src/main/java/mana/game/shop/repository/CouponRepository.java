@@ -2,11 +2,14 @@ package mana.game.shop.repository;
 
 import mana.game.shop.entity.Coupon;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface CouponRepository {
-    Optional<Coupon> save(Coupon coupon);
-    Optional<Coupon> update(Coupon coupon);
-    boolean delete(int id);
+    boolean save(Coupon coupon);
+    boolean update(Coupon coupon);
+    boolean updateIsActiveStatus(String code, boolean is_active);
+    boolean delete(String code);
     Optional<Coupon> findByCode(String code);
+    List<Coupon> findAll();
 }
