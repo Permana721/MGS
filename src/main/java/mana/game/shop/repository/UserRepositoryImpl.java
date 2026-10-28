@@ -22,11 +22,10 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public User save(User user) {
+    public boolean save(User user) {
         String sql = """
             INSERT INTO users(username, password, email, role)
             VALUES (?, ?, ?, ?::user_role)
-            RETURNING id, balance, is_active, created_at, updated_at
             """;
 
         try (Connection connection = dataSource.getConnection();
@@ -37,16 +36,9 @@ public class UserRepositoryImpl implements UserRepository {
             preparedStatement.setString(3, user.getEmail());
             preparedStatement.setString(4, user.getUserRole().name());
 
-            try (ResultSet resultSet = preparedStatement.executeQuery()) {
-                if (resultSet.next()) {
-                    user.setId(resultSet.getInt("id"));
-                    user.setBalance(resultSet.getBigDecimal("balance"));
-                    user.setIs_active(resultSet.getBoolean("is_active"));
-                    user.setCreated_at(resultSet.getObject("created_at", OffsetDateTime.class).toInstant());
-                    user.setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
-                }
-            }
-            return user;
+            int rowsAffected = preparedStatement.executeUpdate();
+            return rowsAffected > 0;
+
         } catch (SQLException exception) {
             if ("23505".equals(exception.getSQLState())) {
                 throw new DuplicateDataException("Username or email already exists!");
@@ -57,7 +49,7 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public Optional<User> update(User user) {
+    public boolean update(User user) {
         String sql = """
             UPDATE users
             SET username = ?,
@@ -68,7 +60,6 @@ public class UserRepositoryImpl implements UserRepository {
                 is_active = ?,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-            RETURNING updated_at
             """;
 
         try (Connection connection = dataSource.getConnection();
@@ -82,13 +73,8 @@ public class UserRepositoryImpl implements UserRepository {
             preparedStatement.setBoolean(6, user.isIs_active());
             preparedStatement.setLong(7, user.getId());
 
-            try (ResultSet resultSet = preparedStatement.executeQuery()) {
-                if (resultSet.next()) {
-                    user.setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
-                    return Optional.of(user);
-                }
-            }
-            return Optional.empty();
+            int rowsAffected = preparedStatement.executeUpdate();
+            return rowsAffected > 0;
 
         } catch (SQLException exception) {
             throw new RuntimeException("Database error while saving user: " + exception.getMessage(), exception);
@@ -107,6 +93,7 @@ public class UserRepositoryImpl implements UserRepository {
 
             int changedRow = preparedStatement.executeUpdate();
             return changedRow > 0;
+
         } catch (SQLException exception) {
             throw new ResourceNotFoundException(exception.getMessage());
         }
@@ -170,23 +157,15 @@ public class UserRepositoryImpl implements UserRepository {
             preparedStatement.setInt(2, user.getId());
             preparedStatement.setBigDecimal(3, amount);
 
-            try(ResultSet resultSet = preparedStatement.executeQuery()){
-                if (resultSet.next()) {
-                    user.setBalance(resultSet.getBigDecimal("balance"));
-                    user.setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
-                    return true;
-                }
-            } catch (SQLException exception) {
-                throw new RuntimeException(exception.getMessage());
-            }
+            int rowsAffected = preparedStatement.executeUpdate();
+            return rowsAffected > 0;
         } catch (SQLException exception) {
             throw new RuntimeException(exception.getMessage());
         }
-        return false;
     }
 
     @Override
-    public Optional<User> bannedUser(boolean is_active, int id) {
+    public boolean bannedUser(boolean is_active, int id) {
         String sql = """
                 UPDATE users 
                 SET is_active = ?, 
@@ -199,18 +178,12 @@ public class UserRepositoryImpl implements UserRepository {
             preparedStatement.setBoolean(1, is_active);
             preparedStatement.setInt(2, id);
 
-            try(ResultSet resultSet = preparedStatement.executeQuery()){
-                if (resultSet.next()) {
-                    User bannedUser = findById(id)
-                            .orElseThrow(() -> new ResourceNotFoundException("User with id " + id + " not found!"));
-                    bannedUser.setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
-                    return Optional.of(bannedUser);
-                }
-            }
+            int rowsAffected = preparedStatement.executeUpdate();
+            return rowsAffected > 0;
+
         } catch (SQLException exception) {
             throw new RuntimeException(exception.getMessage(), exception);
         }
-        return Optional.empty();
     }
 
     @Override
