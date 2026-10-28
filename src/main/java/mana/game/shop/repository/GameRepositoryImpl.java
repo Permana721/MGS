@@ -23,13 +23,12 @@ public class GameRepositoryImpl implements GameRepository {
     }
 
     @Override
-    public Optional<Game> save(Game game) {
+    public boolean save(Game game) {
         String sql = """
                    INSERT INTO games
                    (title, category, price, type, stock, size_mb, release_date)\s
                    VALUES\s
                    (?, ?::game_category, ?, ?::game_type, ?, ?, ?)
-                   RETURNING id, created_at, updated_at
                   \s""";
 
         try(Connection connection = dataSource.getConnection()){
@@ -52,15 +51,9 @@ public class GameRepositoryImpl implements GameRepository {
             }
             preparedStatement.setDate(7, Date.valueOf((LocalDate) game.getRelease_date()));
 
-            try(ResultSet resultSet = preparedStatement.executeQuery()) {
-                if (resultSet.next()) {
-                    game.setId(resultSet.getInt("id"));
-                    game.setCreated_at(resultSet.getObject("created_at", OffsetDateTime.class).toInstant());
-                    game.setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
-                    return Optional.of(game);
-                }
-            }
-            return Optional.empty();
+            int rowsAffected = preparedStatement.executeUpdate();
+            return rowsAffected > 0;
+
         } catch (SQLException exception) {
             if ("23505".equals(exception.getSQLState())) {
                 throw new DuplicateDataException("Game is already exists!");
@@ -71,7 +64,7 @@ public class GameRepositoryImpl implements GameRepository {
     }
 
     @Override
-    public Optional<Game> update(Game game) {
+    public boolean update(Game game) {
         String sql = """
                  UPDATE games\s
                  SET title = ?,\s
@@ -83,7 +76,6 @@ public class GameRepositoryImpl implements GameRepository {
                  release_date = ?,
                  updated_at = CURRENT_TIMESTAMP
                  WHERE id = ?
-                 RETURNING updated_at
                 \s""";
 
         try (Connection connection = dataSource.getConnection();
@@ -109,14 +101,8 @@ public class GameRepositoryImpl implements GameRepository {
             preparedStatement.setDate(7, Date.valueOf(game.getRelease_date()));
             preparedStatement.setInt(8, game.getId());
 
-            try(ResultSet resultSet = preparedStatement.executeQuery()){
-                if (resultSet.next()) {
-                    game.setUpdated_at(resultSet.getObject("updated_at", OffsetDateTime.class).toInstant());
-                    return Optional.of(game);
-                }
-            }
-
-            return Optional.empty();
+            int rowsAffected = preparedStatement.executeUpdate();
+            return rowsAffected > 0;
 
         } catch (SQLException exception) {
             throw new RuntimeException("Failed to update the game: " + exception.getMessage(), exception);
@@ -140,55 +126,40 @@ public class GameRepositoryImpl implements GameRepository {
     }
 
     @Override
-    public Optional<Game> addStock(Connection connection, int id, int stock) {
+    public boolean addStock(Connection connection, int id, int stock) {
         String sql = """
                 UPDATE games\s
                 SET stock = stock + ?,\s
                 updated_at = CURRENT_TIMESTAMP\s
                 WHERE id = ? AND type = 'PHYSICAL'::game_type
-                RETURNING *
                \s""";
 
         try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
             preparedStatement.setInt(1, stock);
             preparedStatement.setInt(2, id);
 
-            try(ResultSet resultSet = preparedStatement.executeQuery()){
-                if (resultSet.next()) {
-                    return Optional.of(rowHelper(resultSet));
-                }
-            } catch (SQLException exception) {
-                throw new RuntimeException(exception.getMessage());
-            }
-            return Optional.empty();
+            int rowsAffected = preparedStatement.executeUpdate();
+            return rowsAffected > 0;
         } catch (SQLException exception) {
             throw new RuntimeException(exception.getMessage());
         }
     }
 
     @Override
-    public Optional<Game> decreaseStock(Connection connection, int id, int stock) {
+    public boolean decreaseStock(Connection connection, int id, int stock) {
         String sql = """
                 UPDATE games\s
                 SET stock = stock - ?,\s
                 updated_at = CURRENT_TIMESTAMP\s
                 WHERE id = ? AND type = 'PHYSICAL'::game_type
-                RETURNING *
                \s""";
 
         try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
             preparedStatement.setInt(1, stock);
             preparedStatement.setInt(2, id);
 
-            try(ResultSet resultSet = preparedStatement.executeQuery()){
-                if (resultSet.next()) {
-                    return Optional.of(rowHelper(resultSet));
-                }
-            } catch (SQLException exception) {
-                throw new RuntimeException("Failed to decrease stock game: " + exception.getMessage());
-            }
-
-            return Optional.empty();
+           int rowsAffected = preparedStatement.executeUpdate();
+           return rowsAffected > 0;
 
         } catch (SQLException exception) {
             throw new RuntimeException(exception.getMessage());
