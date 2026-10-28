@@ -23,21 +23,24 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User addUser(User user) {
+    public void addUser(User user) {
         if (user.getUsername().isBlank() || user.getUsername() == null) {
             throw new BusinessValidationException("Username cannot be empty!");
         }
         if (user.getPassword().length() < 6) {
             throw new BusinessValidationException("Password must be at least 6 characters!");
         }
-
         String hashedPassword = PasswordUtil.hashPassword(user.getPassword());
         user.setPassword(hashedPassword);
-        return userRepository.save(user);
+        try {
+            userRepository.save(user);
+        } catch (Exception exception) {
+            throw new RuntimeException(exception.getMessage());
+        }
     }
 
     @Override
-    public User updateUser(User user) {
+    public void updateUser(User user) {
         if (user.getUsername() == null || user.getUsername().trim().isEmpty()) {
             throw new IllegalArgumentException("Username cannot be empty!");
         }
@@ -45,18 +48,25 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Email cannot be empty!");
         }
 
-        return userRepository.update(user)
-                .orElseThrow(() -> new ResourceNotFoundException("An error occurred: please try again later!"));
+        try {
+            userRepository.update(user);
+        } catch (Exception exception) {
+            throw new RuntimeException(exception.getMessage());
+        }
     }
 
     @Override
-    public boolean deleteUser(int id) {
+    public void deleteUser(int id) {
         findUser(id);
-        return userRepository.delete(id);
+        try {
+            userRepository.delete(id);
+        } catch (Exception exception) {
+            throw new RuntimeException(exception.getMessage());
+        }
     }
 
     @Override
-    public User banUser(int adminId, int userId, boolean is_active) {
+    public void banUser(int adminId, int userId, boolean is_active) {
         if (adminId == userId) {
             throw new BusinessValidationException("Cannot ban yourself!");
         }
@@ -68,8 +78,11 @@ public class UserServiceImpl implements UserService {
             throw new BusinessValidationException("Cannot ban admin!");
         }
 
-        return userRepository.bannedUser(is_active, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User with id " + userId + " not found!"));
+        try {
+            userRepository.bannedUser(is_active, userId);
+        } catch (Exception exception) {
+            throw new RuntimeException(exception.getMessage());
+        }
     }
 
     @Override
@@ -95,7 +108,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public boolean addBalance(int id, BigDecimal balance) {
+    public void addBalance(int id, BigDecimal balance) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id " + id + " not found"));
 
@@ -106,11 +119,15 @@ public class UserServiceImpl implements UserService {
         if (!user.isIs_active()) {
             throw new BusinessValidationException("User must be active! please contact admin for activate your account.");
         }
-        return userRepository.topup(id, balance);
+        try {
+            userRepository.topup(id, balance);
+        } catch (Exception exception) {
+            throw new RuntimeException(exception.getMessage());
+        }
     }
 
     @Override
-    public boolean decreaseBalance(Connection connection, User user, BigDecimal balance) {
+    public void decreaseBalance(Connection connection, User user, BigDecimal balance) {
         if (balance.compareTo(BigDecimal.ZERO) == 0) {
             throw new BusinessValidationException("Inefficient Balance!");
         }
@@ -123,7 +140,11 @@ public class UserServiceImpl implements UserService {
             throw new BusinessValidationException("Inefficient Balance! Remaining balance: Rp. " + InputUtil.decimalFormat(user.getBalance()));
         }
 
-        return userRepository.decreaseBalance(connection, user, balance);
+        try {
+            userRepository.decreaseBalance(connection, user, balance);
+        } catch (Exception exception) {
+            throw new RuntimeException(exception.getMessage());
+        }
     }
 
     @Override
