@@ -20,7 +20,6 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 
 public class AdminView {
     private final UserService userService;
@@ -55,7 +54,7 @@ public class AdminView {
                 case "1" -> gameManagement();
                 case "2" -> userManagement();
                 case "3" -> transactionHistory();
-                case "4" -> cuponManagement();
+                case "4" -> couponManagement();
                 case "0" -> {
                     return;
                 }
@@ -130,12 +129,8 @@ public class AdminView {
         if (gameType.equals(GameType.PHYSICAL)) {
             PhysicalGame physicalGame = new PhysicalGame(title, gameCategory, price, gameType, stock, null, dateInput);
             try {
-                Game addedGame = gameService.addGame(physicalGame);
-                if (Objects.nonNull(addedGame)) {
-                    ColorUtil.printSuccess("Success added game: " + addedGame.getTitle());
-                } else {
-                    ColorUtil.printError("Failed to add a game");
-                }
+                gameService.addGame(physicalGame);
+                ColorUtil.printSuccess("Success added game: " + physicalGame.getTitle());
             } catch (BusinessValidationException exception) {
                 ColorUtil.printError("Failed to add a game: " + exception.getMessage());
             } catch (Exception exception) {
@@ -144,12 +139,8 @@ public class AdminView {
         } else {
             DigitalGame digitalGame = new DigitalGame(title, gameCategory, price, gameType, null, size, dateInput);
             try {
-                Game addedGame = gameService.addGame(digitalGame);
-                if (Objects.nonNull(addedGame)) {
-                    ColorUtil.printSuccess("Success added game: " + addedGame.getTitle());
-                } else {
-                    ColorUtil.printError("Failed to add a game");
-                }
+                gameService.addGame(digitalGame);
+                ColorUtil.printSuccess("Success added game: " + digitalGame.getTitle());
             } catch (BusinessValidationException exception) {
                 ColorUtil.printError("Failed to add a game: " + exception.getMessage());
             } catch (Exception exception) {
@@ -225,10 +216,8 @@ public class AdminView {
         viewAllGames();
         int id = InputUtil.intInput("Enter the game ID you want to delete: ");
         try {
-            boolean result = gameService.deleteGame(id);
-            if (result) {
+            gameService.deleteGame(id);
                 ColorUtil.printSuccess("Game with Id " + id + " was deleted!");
-            }
         } catch (ResourceNotFoundException exception) {
             ColorUtil.printError(exception.getMessage());
         } catch (Exception exception) {
@@ -319,30 +308,22 @@ public class AdminView {
             if (!user.isIs_active()) {
                 System.out.println("Current user status is: BANNED, and try to change into ACTIVE...");
                 try {
-                    User activeUser = userService.banUser(currentUser.getId(), id, Boolean.TRUE);
-                    if (activeUser.isIs_active()) {
-                        ColorUtil.printSuccess("User with Id " + id + " was successfully active!");
-                    } else {
-                        ColorUtil.printError("Failed to banned user, Please try again");
-                    }
+                    userService.banUser(currentUser.getId(), id, Boolean.TRUE);
+                    ColorUtil.printSuccess("User with Id " + id + " was successfully active!");
                 } catch (BusinessException exception) {
                     ColorUtil.printError(exception.getMessage());
                 }
             } else {
                 System.out.println("Current user status is: ACTIVE, and try to change into BANNED...");
                 try {
-                    User bannedUser = userService.banUser(currentUser.getId(), id, Boolean.FALSE);
-                    if (!bannedUser.isIs_active()) {
-                        ColorUtil.printSuccess("User with Id " + id + " was successfully banned!");
-                    } else {
-                        ColorUtil.printError("Failed to banned user, Please try again");
-                    }
+                    userService.banUser(currentUser.getId(), id, Boolean.FALSE);
+                    ColorUtil.printSuccess("User with Id " + id + " was successfully banned!");
                 } catch (BusinessException exception) {
                     ColorUtil.printError(exception.getMessage());
                 }
             }
         } catch (BusinessException exception) {
-            ColorUtil.printError(exception.getMessage());
+            ColorUtil.printError("An error occurred: " + exception.getMessage());
         }
     }
 
@@ -376,43 +357,57 @@ public class AdminView {
         }
     }
 
-    private void cuponManagement() {
+    private void couponManagement() {
         System.out.println("\n============Coupon Management============");
         System.out.println("1. Add coupon");
         System.out.println("2. Edit coupon");
         System.out.println("3. Delete coupon");
-        System.out.println("4. View all coupon");
+        System.out.println("4. Nonactive coupon");
+        System.out.println("5. View all coupon");
         System.out.println("0. Back");
         int input = InputUtil.intInput("Choice: ");
 
         switch (input) {
-            case 1 -> addCupon();
+            case 1 -> addCoupon();
             case 2 -> editGame();
             case 3 -> deleteGame();
-            case 4 -> viewAllGames();
+            case 4 -> nonactiveCoupon();
+            case 5 -> viewAllCoupon();
             case 0 -> showMenu();
             default -> ColorUtil.printError("Please input a valid number!");
         }
     }
 
-    private void addCupon() {
+    private void addCoupon() {
         String code = InputUtil.stringInput("Please input coupon code: ");
         BigDecimal discount_percent = InputUtil.bigDecimalInput("Please input discount percent: ");
         BigDecimal max_discount = InputUtil.bigDecimalInput("Please input max discount: ");
         BigDecimal min_purchase = InputUtil.bigDecimalInput("Please input min purchase: ");
         int usage_limit = InputUtil.intInput("Please input usage limit: ");
-        int usage_count = InputUtil.intInput("Please input usage count: ");
         Instant valid_from = DateUtil.instantInput("Please input coupon valid from");
         Instant valid_until = DateUtil.instantInput("Please input coupon valid until");
-        Coupon coupon = new Coupon(code, discount_percent, max_discount, min_purchase, usage_limit, usage_count, Instant.from(valid_from), Instant.from(valid_until));
+        Coupon coupon = new Coupon(code, discount_percent, max_discount, min_purchase, usage_limit, Instant.from(valid_from), Instant.from(valid_until));
 
         try {
-            Coupon savedCoupon = couponService.addCoupon(coupon);
-            if (coupon.getCode().equals(savedCoupon.getCode())) {
-                ColorUtil.printSuccess("Success to save coupon with code: " + coupon.getCode());
-            }
+            couponService.addCoupon(coupon);
+            ColorUtil.printSuccess("Success to save coupon with code: " + coupon.getCode());
         } catch (Exception exception) {
             ColorUtil.printError(exception.getMessage());
+        }
+    }
+
+    private void nonactiveCoupon() {
+        String id = InputUtil.stringInput("Please input coupon code: ");
+    }
+
+    private void viewAllCoupon() {
+        List<Coupon> coupons;
+        try {
+            coupons = couponService.searchAllCoupon();
+
+            coupons.forEach(this::viewCoupon);
+        } catch (Exception exception) {
+            ColorUtil.printError("An error occurred: " + exception.getMessage());
         }
     }
 
@@ -447,5 +442,22 @@ public class AdminView {
         } catch (ResourceNotFoundException exception) {
             ColorUtil.printError("An error occurred: " + exception.getMessage());
         }
+    }
+
+    private void viewCoupon(Coupon coupon) {
+        System.out.println("\n========================================================");
+        System.out.println("Id: " + coupon.getId());
+        System.out.println("Code: " + coupon.getCode());
+        System.out.println("Discount percent: " + coupon.getDiscount_percent() + "%");
+        System.out.println("Max discount: Rp. " + InputUtil.decimalFormat(coupon.getMax_discount()));
+        System.out.println("Min purchase: Rp. " + InputUtil.decimalFormat(coupon.getMin_purchase()));
+        System.out.println("Usage limit: " + coupon.getUsage_limit());
+        System.out.println("Usage count: " + coupon.getUsed_count());
+        System.out.println("Valid from: " + coupon.getValid_from());
+        System.out.println("Valid until: " + coupon.getValid_until());
+        System.out.println("Is active: " + coupon.isIs_active());
+        System.out.println("Created_at: " + coupon.getCreated_at());
+        System.out.println("Updated_at: " + coupon.getUpdated_at());
+        System.out.println("========================================================\n");
     }
 }
