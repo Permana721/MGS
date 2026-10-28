@@ -20,38 +20,36 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
-    public Game addGame(Game game) {
+    public void addGame(Game game) {
         if (game.getTitle().isBlank() || game.getGameType().getDisplayName().isBlank()) {
             throw new BusinessValidationException("Please fill up all columns!");
         }
-
-        return gameRepository.save(game)
-                .orElseThrow(() -> new BusinessValidationException("An error occurred: please try again later!"));
+        gameRepository.save(game);
     }
 
     @Override
-    public Game updateGame(Game game) {
+    public void updateGame(Game game) {
         if (game.getTitle().isBlank() || game.getTitle() == null) {
             throw new BusinessValidationException("Game title cannot to be empty!");
         }
 
-        return gameRepository.update(game)
-                .orElseThrow(() -> new BusinessValidationException("An error occurred: please try again later!"));
+        gameRepository.update(game);
     }
 
     @Override
-    public boolean deleteGame(int id) {
+    public void deleteGame(int id) {
         findGame(id);
-        return gameRepository.delete(id);
+        gameRepository.delete(id);
     }
 
     @Override
     public Game findGame(int id) {
-        if (id == 0) {
+        if (id <= 0) {
             throw new BusinessValidationException("The id must be greater than 0!");
         }
 
-        return gameRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Game with ID " + id + " not found!"));
+        return gameRepository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("Game with ID " + id + " not found!"));
     }
 
     @Override
@@ -64,19 +62,17 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
-    public Game addGameStock(Connection connection, int id, int stock) {
+    public void addGameStock(Connection connection, int id, int stock) {
         checkTypeGame(id);
         findGame(id);
-        return gameRepository.addStock(connection, id, stock)
-                .orElseThrow(() -> new BusinessValidationException("Failed to add game stock"));
+        gameRepository.addStock(connection, id, stock);
     }
 
     @Override
-    public Game decreaseGameStock(Connection connection, int id, int stock) {
+    public void decreaseGameStock(Connection connection, int id, int stock) {
         checkTypeGame(id);
         findGame(id);
-        return gameRepository.decreaseStock(connection, id, stock)
-                .orElseThrow(() -> new BusinessValidationException("An error occurred."));
+        gameRepository.decreaseStock(connection, id, stock);
     }
 
     @Override
@@ -87,7 +83,7 @@ public class GameServiceImpl implements GameService {
     private void checkTypeGame(int id) {
         Game game = findGame(id);
         if (game.getGameType() != GameType.PHYSICAL) {
-            throw new RuntimeException("Only Physical Game can decrease the stock!");
+            throw new BusinessValidationException("Only Physical Game can decrease the stock!");
         }
     }
 }
