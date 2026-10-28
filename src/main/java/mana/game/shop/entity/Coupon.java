@@ -17,13 +17,12 @@ public class Coupon {
     private Instant created_at;
     private Instant updated_at;
 
-    public Coupon(String code, BigDecimal discount_percent, BigDecimal max_discount, BigDecimal min_purchase, int usage_limit, int used_count, Instant valid_from, Instant valid_until) {
+    public Coupon(String code, BigDecimal discount_percent, BigDecimal max_discount, BigDecimal min_purchase, int usage_limit, Instant valid_from, Instant valid_until) {
         this.code = code;
         this.discount_percent = discount_percent;
         this.max_discount = max_discount;
         this.min_purchase = min_purchase;
         this.usage_limit = usage_limit;
-        this.used_count = used_count;
         this.valid_from = valid_from;
         this.valid_until = valid_until;
     }
