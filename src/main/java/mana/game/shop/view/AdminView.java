@@ -363,16 +363,18 @@ public class AdminView {
         System.out.println("2. Edit coupon");
         System.out.println("3. Delete coupon");
         System.out.println("4. Nonactive coupon");
-        System.out.println("5. View all coupon");
+        System.out.println("5. Activate coupon");
+        System.out.println("6. View all coupon");
         System.out.println("0. Back");
         int input = InputUtil.intInput("Choice: ");
 
         switch (input) {
             case 1 -> addCoupon();
-            case 2 -> editGame();
-            case 3 -> deleteGame();
+            case 2 -> editCoupon();
+            case 3 -> deleteCoupon();
             case 4 -> nonactiveCoupon();
-            case 5 -> viewAllCoupon();
+            case 5 -> activeCoupon();
+            case 6 -> viewAllCoupon();
             case 0 -> showMenu();
             default -> ColorUtil.printError("Please input a valid number!");
         }
@@ -396,8 +398,84 @@ public class AdminView {
         }
     }
 
+    private void editCoupon() {
+        viewAllCoupon();
+        String code = InputUtil.stringInput("Please input coupon code: ");
+        Coupon coupon = couponService.searchCouponByCode(code);
+        System.out.println("1. Edit coupon code \n2. Edit discount percent \n3. Edit max discount \n4. Edit min purchase \n5. Edit usage limit \n6. Edit valid from \n7. Edit valid until \n0. Back");
+        int input = InputUtil.intInput("Choice: ");
+        switch (input) {
+            case 1 -> {
+                String newCode = InputUtil.stringInput("Please input new coupon code: ");
+                coupon.setCode(newCode);
+            }
+            case 2 -> {
+                BigDecimal newDiscountPercent = InputUtil.bigDecimalInput("Please input new discount percent coupon: ");
+                coupon.setDiscount_percent(newDiscountPercent);
+            }
+            case 3 -> {
+                BigDecimal newMaxDiscount = InputUtil.bigDecimalInput("Please input new max discount coupon: ");
+                coupon.setMax_discount(newMaxDiscount);
+            }
+            case 4 -> {
+                BigDecimal newMinPurchase = InputUtil.bigDecimalInput("Please input new min purchase coupon: ");
+                coupon.setMin_purchase(newMinPurchase);
+            }
+            case 5 -> {
+                int newUsageLimit = InputUtil.intInput("Please input new usage limit coupon: ");
+                coupon.setUsage_limit(newUsageLimit);
+            }
+            case 6 -> {
+                Instant newValidFrom = DateUtil.instantInput("Please input new valid from coupon");
+                coupon.setValid_from(newValidFrom);
+            }
+            case 7 -> {
+                Instant newValidUntil = DateUtil.instantInput("Please input new valid until coupon");
+                coupon.setValid_until(newValidUntil);
+            }
+            case 0 -> {
+                return;
+            }
+            default -> ColorUtil.printError("Please input a valid number!");
+        }
+
+        try {
+            couponService.updateCoupon(coupon);
+            ColorUtil.printSuccess("Success to update coupon with code: " + coupon.getCode());
+        } catch (Exception exception) {
+            ColorUtil.printError(exception.getMessage());
+        }
+    }
+
+
+    private void deleteCoupon() {
+        String code = InputUtil.stringInput("Please input coupon code want to delete: ");
+        try {
+            couponService.deleteCoupon(code);
+            ColorUtil.printSuccess("Success delete coupon with code: " + code);
+        } catch (Exception exception) {
+            ColorUtil.printError("An error occurred: " + code + " " + exception.getMessage());
+        }
+    }
+
     private void nonactiveCoupon() {
-        String id = InputUtil.stringInput("Please input coupon code: ");
+        String code = InputUtil.stringInput("Please input coupon code: ");
+        try {
+            couponService.deactivateCoupon(code);
+            ColorUtil.printSuccess("Success to nonactive coupon: " + code);
+        } catch (Exception exception) {
+            ColorUtil.printError("An error occurred: " + exception.getMessage());
+        }
+    }
+
+    private void activeCoupon() {
+        String code = InputUtil.stringInput("Please input coupon code: ");
+        try {
+            couponService.activateCoupon(code);
+            ColorUtil.printSuccess("Success to activate coupon: " + code);
+        } catch (Exception exception) {
+            ColorUtil.printError("An error occurred: " + exception.getMessage());
+        }
     }
 
     private void viewAllCoupon() {
