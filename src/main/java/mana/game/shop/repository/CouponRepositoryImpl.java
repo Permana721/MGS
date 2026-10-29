@@ -64,8 +64,7 @@ public class CouponRepositoryImpl implements CouponRepository{
             min_purchase = ?,\s
             usage_limit = ?,\s
             valid_from = ?,\s
-            valid_until = ?
-            is_active = ?
+            valid_until = ?,
             updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
            \s""";
@@ -80,8 +79,7 @@ public class CouponRepositoryImpl implements CouponRepository{
             preparedStatement.setInt(5, coupon.getUsage_limit());
             preparedStatement.setObject(6, coupon.getValid_from().atOffset(ZoneOffset.UTC));
             preparedStatement.setObject(7, coupon.getValid_until().atOffset(ZoneOffset.UTC));
-            preparedStatement.setBoolean(8, coupon.isIs_active());
-            preparedStatement.setInt(9, coupon.getId());
+            preparedStatement.setInt(8, coupon.getId());
 
             int rowsAffected = preparedStatement.executeUpdate();
             return rowsAffected > 0;
