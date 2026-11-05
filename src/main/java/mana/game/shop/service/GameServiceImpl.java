@@ -2,15 +2,12 @@ package mana.game.shop.service;
 
 import mana.game.shop.entity.Game;
 import mana.game.shop.entity.GameType;
-import mana.game.shop.exception.BusinessException;
 import mana.game.shop.exception.BusinessValidationException;
 import mana.game.shop.exception.ResourceNotFoundException;
 import mana.game.shop.repository.GameRepository;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.List;
-import java.util.Objects;
 
 public class GameServiceImpl implements GameService {
     private final GameRepository gameRepository;
