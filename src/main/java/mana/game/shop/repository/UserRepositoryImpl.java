@@ -9,13 +9,12 @@ import mana.game.shop.util.DatabaseUtil;
 import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.sql.*;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class UserRepositoryImpl implements UserRepository {
-    private DataSource dataSource;
+    private final DataSource dataSource;
 
     public UserRepositoryImpl(DataSource dataSource) {
         this.dataSource = dataSource;
@@ -145,12 +144,12 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public boolean decreaseBalance(Connection connection, User user, BigDecimal amount) {
         String sql = """
-                UPDATE users 
+                UPDATE users\s
                 SET balance = balance - ?,
-                updated_at = CURRENT_TIMESTAMP 
+                updated_at = CURRENT_TIMESTAMP\s
                 WHERE id = ? AND balance >= ?
                 RETURNING balance, updated_at
-                """;
+               \s""";
 
         try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
             preparedStatement.setBigDecimal(1, amount);
@@ -167,12 +166,12 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public boolean bannedUser(boolean is_active, int id) {
         String sql = """
-                UPDATE users 
-                SET is_active = ?, 
-                updated_at = CURRENT_TIMESTAMP 
+                UPDATE users\s
+                SET is_active = ?,\s
+                updated_at = CURRENT_TIMESTAMP\s
                 WHERE id = ?
                 RETURNING updated_at
-                """;
+               \s""";
         try(Connection connection = dataSource.getConnection()){
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
             preparedStatement.setBoolean(1, is_active);
@@ -190,9 +189,9 @@ public class UserRepositoryImpl implements UserRepository {
     public Optional<User> findById(int id) {
         String sql = """
                 SELECT *
-                FROM users 
+                FROM users\s
                 WHERE id = ?
-                """;
+               \s""";
         try(Connection connection = dataSource.getConnection()){
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
             preparedStatement.setInt(1, id);
@@ -211,9 +210,9 @@ public class UserRepositoryImpl implements UserRepository {
     public Optional<User> login(String username) {
         String sql = """
                 SELECT *
-                FROM users 
+                FROM users\s
                 WHERE username = ?
-                """;
+               \s""";
 
         try (Connection connection = dataSource.getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
