@@ -1,8 +1,6 @@
 package mana.game.shop.util;
 
 import java.math.BigDecimal;
-import java.text.NumberFormat;
-import java.util.Locale;
 import java.util.Scanner;
 
 public class InputUtil {
@@ -51,15 +49,6 @@ public class InputUtil {
                 ColorUtil.printError("Invalid input! Please enter a valid number.");
             }
         }
-    }
-
-    public static String decimalFormat(BigDecimal amount) {
-        Locale indonesia = Locale.forLanguageTag("id-ID");
-
-        NumberFormat numberFormat = NumberFormat.getNumberInstance(indonesia);
-        numberFormat.setMaximumFractionDigits(0);
-
-        return numberFormat.format(amount);
     }
 
     public static int sizeInGB(int value) {
