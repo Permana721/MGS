@@ -6,14 +6,12 @@ import mana.game.shop.exception.AuthenticationException;
 import mana.game.shop.exception.BusinessValidationException;
 import mana.game.shop.exception.ResourceNotFoundException;
 import mana.game.shop.repository.UserRepository;
-import mana.game.shop.util.InputUtil;
+import mana.game.shop.util.CurrencyUtil;
 import mana.game.shop.util.PasswordUtil;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.List;
-import java.util.Optional;
 
 public class UserServiceImpl implements UserService {
     UserRepository userRepository;
@@ -114,7 +112,7 @@ public class UserServiceImpl implements UserService {
 
         if (balance.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessValidationException("Inefficient Balance! Remaining balance: Rp. "
-                    + InputUtil.decimalFormat(user.getBalance()));
+                    + CurrencyUtil.decimalFormat(user.getBalance()));
         }
         if (!user.isIs_active()) {
             throw new BusinessValidationException("User must be active! please contact admin for activate your account.");
@@ -137,7 +135,7 @@ public class UserServiceImpl implements UserService {
         }
 
         if (user.getBalance().compareTo(balance) <  0) {
-            throw new BusinessValidationException("Inefficient Balance! Remaining balance: Rp. " + InputUtil.decimalFormat(user.getBalance()));
+            throw new BusinessValidationException("Inefficient Balance! Remaining balance: Rp. " + CurrencyUtil.decimalFormat(user.getBalance()));
         }
 
         try {
