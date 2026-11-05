@@ -130,6 +130,31 @@ public class CouponRepositoryImpl implements CouponRepository{
     }
 
     @Override
+    public boolean recordCouponUsage(Connection connection, int userId, int couponId) {
+        String sql = """
+                INSERT INTO user_coupons
+                (user_id, coupon_id, used_at, is_redeemed)
+                VALUES
+                (?, ?, CURRENT_TIMESTAMP, true)
+                """;
+
+        try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
+            preparedStatement.setInt(1, userId);
+            preparedStatement.setInt(2, couponId);
+
+            try {
+                int affectedRows = preparedStatement.executeUpdate();
+
+                return affectedRows > 0;
+            } catch (SQLException exception) {
+                throw new RuntimeException(exception.getMessage());
+            }
+        } catch (SQLException exception) {
+            throw new RuntimeException((exception.getMessage()));
+        }
+    }
+
+    @Override
     public Optional<Coupon> findByCode(String code) {
         String sql = """
             SELECT * FROM coupons
