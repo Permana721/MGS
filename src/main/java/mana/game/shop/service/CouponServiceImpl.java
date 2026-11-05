@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Objects;
 
 public class CouponServiceImpl implements CouponService{
-    private CouponRepository couponRepository;
+    private final CouponRepository couponRepository;
 
     public CouponServiceImpl(CouponRepository couponRepository) {
         this.couponRepository = couponRepository;
