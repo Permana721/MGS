@@ -3,7 +3,6 @@ package mana.game.shop.repository;
 import mana.game.shop.entity.Game;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
