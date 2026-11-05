@@ -2,13 +2,10 @@ package mana.game.shop.repository;
 
 import mana.game.shop.entity.Transaction;
 import mana.game.shop.entity.TransactionStatus;
-import mana.game.shop.entity.User;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
