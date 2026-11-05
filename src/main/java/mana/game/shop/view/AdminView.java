@@ -9,6 +9,7 @@ import mana.game.shop.service.GameService;
 import mana.game.shop.service.TransactionService;
 import mana.game.shop.service.UserService;
 import mana.game.shop.util.ColorUtil;
+import mana.game.shop.util.CurrencyUtil;
 import mana.game.shop.util.DateUtil;
 import mana.game.shop.util.InputUtil;
 
@@ -17,7 +18,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 
@@ -266,9 +266,6 @@ public class AdminView {
             default -> ColorUtil.printError("Please input a valid number!");
         }
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                .withZone(ZoneId.of("Asia/Jakarta"));
-
         assert users != null;
         if (users.isEmpty()) {
             ColorUtil.printError("There are no users!");
@@ -277,10 +274,10 @@ public class AdminView {
                     .sorted(Comparator.comparingInt(User::getId))
                     .forEach(user -> {
                         String updatedAt = user.getUpdated_at() != null
-                                ? formatter.format(user.getUpdated_at())
+                                ? DateUtil.formatDate(user.getUpdated_at())
                                 : "-";
                         String createdAt = user.getCreated_at() != null
-                                ? formatter.format(user.getCreated_at())
+                                ? DateUtil.formatDate(user.getCreated_at())
                                 : "-";
                         System.out.println("========================================================");
                         System.out.println("User Id: " + user.getId());
@@ -288,7 +285,7 @@ public class AdminView {
                         System.out.println("Password: " + user.getPassword());
                         System.out.println("Email: " + user.getEmail());
                         System.out.println("Role: " + user.getUserRole());
-                        System.out.println("Balance: " + "Rp. " + InputUtil.decimalFormat(user.getBalance()));
+                        System.out.println("Balance: " + "Rp. " + CurrencyUtil.decimalFormat(user.getBalance()));
                         if (user.isIs_active()) {
                             System.out.println("Status: Active");
                         } else {
@@ -483,7 +480,11 @@ public class AdminView {
         try {
             coupons = couponService.searchAllCoupon();
 
-            coupons.forEach(this::viewCoupon);
+            if (coupons.isEmpty()) {
+                ColorUtil.printError("No coupon data!");
+            } else {
+                coupons.forEach(this::viewCoupon);
+            }
         } catch (Exception exception) {
             ColorUtil.printError("An error occurred: " + exception.getMessage());
         }
@@ -494,7 +495,7 @@ public class AdminView {
         System.out.println("Game Id       : " + game.getId());
         System.out.println("Game title    : " + game.getTitle());
         System.out.println("Game category : " + game.getGameCategory());
-        System.out.println("Game price    : Rp. " + InputUtil.decimalFormat(game.getPrice()));
+        System.out.println("Game price    : Rp. " + CurrencyUtil.decimalFormat(game.getPrice()));
         System.out.println("Game type     : " + game.getGameType());
 
         if (game.getGameType() == GameType.PHYSICAL) {
@@ -513,7 +514,7 @@ public class AdminView {
             System.out.println("Transaction Id    : " + transaction.getId());
             System.out.println("User Id           : " + transaction.getUserId() + " (" + userService.findUser(transaction.getUserId()).getUsername() + ")");
             System.out.println("Game Id           : " + transaction.getGameId() + " (" + gameService.findGame(transaction.getGameId()).getTitle() + ")");
-            System.out.println("Price             : Rp. " + InputUtil.decimalFormat(transaction.getAmount()));
+            System.out.println("Price             : Rp. " + CurrencyUtil.decimalFormat(transaction.getAmount()));
             System.out.println("Status            : " + transaction.getStatus().getDisplayName());
             System.out.println("Transaction Date  : " + DateUtil.formatDate(transaction.getTransactionDate()));
             System.out.println("========================================================\n");
@@ -527,8 +528,8 @@ public class AdminView {
         System.out.println("Id: " + coupon.getId());
         System.out.println("Code: " + coupon.getCode());
         System.out.println("Discount percent: " + coupon.getDiscount_percent() + "%");
-        System.out.println("Max discount: Rp. " + InputUtil.decimalFormat(coupon.getMax_discount()));
-        System.out.println("Min purchase: Rp. " + InputUtil.decimalFormat(coupon.getMin_purchase()));
+        System.out.println("Max discount: Rp. " + CurrencyUtil.decimalFormat(coupon.getMax_discount()));
+        System.out.println("Min purchase: Rp. " + CurrencyUtil.decimalFormat(coupon.getMin_purchase()));
         System.out.println("Usage limit: " + coupon.getUsage_limit());
         System.out.println("Usage count: " + coupon.getUsed_count());
         System.out.println("Valid from: " + coupon.getValid_from());
