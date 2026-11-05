@@ -6,13 +6,9 @@ import mana.game.shop.exception.ResourceNotFoundException;
 import mana.game.shop.service.GameService;
 import mana.game.shop.service.TransactionService;
 import mana.game.shop.service.UserService;
-import mana.game.shop.util.ColorUtil;
-import mana.game.shop.util.DatabaseUtil;
-import mana.game.shop.util.DateUtil;
-import mana.game.shop.util.InputUtil;
+import mana.game.shop.util.*;
 
 import java.math.BigDecimal;
-import java.sql.SQLException;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
@@ -78,8 +74,8 @@ public class CustomerView {
             currentUser = userService.findUser(currentUser.getId());
 
             System.out.println("Topup successfully!");
-            System.out.println("Rp. " + InputUtil.decimalFormat(addedSaldo) + " was added into your account!");
-            System.out.println("Current Balance: Rp. " + InputUtil.decimalFormat(currentUser.getBalance()));
+            System.out.println("Rp. " + CurrencyUtil.decimalFormat(addedSaldo) + " was added into your account!");
+            System.out.println("Current Balance: Rp. " + CurrencyUtil.decimalFormat(currentUser.getBalance()));
         } catch (Exception exception) {
             ColorUtil.printError("An error occurred: " + exception.getMessage());
         }
@@ -101,7 +97,7 @@ public class CustomerView {
 
                 System.out.println("Success bought game!");
                 System.out.println("Now you have a game: " + gameService.findGame(gameId).getTitle());
-                System.out.println("And your balance is: Rp. " + InputUtil.decimalFormat(currentUser.getBalance()));
+                System.out.println("And your balance is: Rp. " + CurrencyUtil.decimalFormat(currentUser.getBalance()));
             }
         } catch (BusinessException exception) {
             ColorUtil.printError("An error occurred: " + exception.getMessage());
@@ -122,7 +118,7 @@ public class CustomerView {
                 boolean result = transactionService.refundTransaction(input, currentUser.getId());
                 if (result) {
                     ColorUtil.printSuccess("Success to refund transaction! Balance Rp. "
-                            + InputUtil.decimalFormat(transactionService.findTransaction(input).getAmount())
+                            + CurrencyUtil.decimalFormat(transactionService.findTransaction(input).getAmount())
                             + " and game " + gameService.findGame(transactionService.findTransaction(input).getGameId()).getTitle()
                             + " refund successful!");
                 }
@@ -183,16 +179,14 @@ public class CustomerView {
     private void seeProfile() {
         System.out.println("========================================================");
         System.out.println("Username: " + currentUser.getUsername());
-        System.out.println("Balance: " + "Rp. " + InputUtil.decimalFormat(currentUser.getBalance()));
+        System.out.println("Balance: " + "Rp. " + CurrencyUtil.decimalFormat(currentUser.getBalance()));
         if (currentUser.isIs_active()) {
             System.out.println("Status: Active");
         } else {
             System.out.println("Status: Banned");
         }
         List<Transaction> transactions = transactionService.findTransactionById(currentUser.getId()).stream().filter(
-                transaction -> {
-                    return transaction.getStatus().equals(TransactionStatus.SUCCESS);
-                }
+                transaction -> transaction.getStatus().equals(TransactionStatus.SUCCESS)
         ).toList();
         List<Game> games = transactions.stream()
                 .map(transaction -> gameService.findGame(transaction.getGameId()))
@@ -210,7 +204,7 @@ public class CustomerView {
         System.out.println("Game Id       : " + game.getId());
         System.out.println("Game title    : " + game.getTitle());
         System.out.println("Game category : " + game.getGameCategory());
-        System.out.println("Game price    : Rp. " + InputUtil.decimalFormat(game.getPrice()));
+        System.out.println("Game price    : Rp. " + CurrencyUtil.decimalFormat(game.getPrice()));
         System.out.println("Game type     : " + game.getGameType());
 
         if (game.getGameType() == GameType.PHYSICAL) {
@@ -269,7 +263,7 @@ public class CustomerView {
             System.out.println("\n==================================");
             System.out.println("Transaction id: " + transaction.getId());
             System.out.println("Purchased games: " + gameService.findGame(transaction.getGameId()).getTitle());
-            System.out.println("Amount: " + InputUtil.decimalFormat(transaction.getAmount()));
+            System.out.println("Amount: " + CurrencyUtil.decimalFormat(transaction.getAmount()));
             System.out.println("Status: " + transaction.getStatus().getDisplayName());
             System.out.println("Date of purchase: " + DateUtil.formatDate(transaction.getTransactionDate()));
             System.out.println("==================================\n");
@@ -283,7 +277,7 @@ public class CustomerView {
 
             System.out.println("\n========================================");
             System.out.println("Game: " + game.getTitle());
-            System.out.println("Price: Rp. " + InputUtil.decimalFormat(game.getPrice()));
+            System.out.println("Price: Rp. " + CurrencyUtil.decimalFormat(game.getPrice()));
             System.out.println("Status: " + transaction.getStatus().getDisplayName());
             System.out.println("Purchase date: " + DateUtil.formatDate(transaction.getTransactionDate()));
             System.out.println("========================================\n");
