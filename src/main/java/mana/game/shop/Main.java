@@ -20,6 +20,6 @@ public class Main {
         TransactionService transactionService = new TransactionServiceImpl(transactionRepository, gameRepository, userRepository);
         MainMenuView mainMenuView = new MainMenuView(userService, gameService, transactionService, couponService);
 
-        mainMenuView.showMainMenu();
-    }
+      mainMenuView.showMainMenu();
+  }
 }
