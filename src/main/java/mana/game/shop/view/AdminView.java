@@ -48,14 +48,14 @@ public class AdminView {
             System.out.println("4. Cupon Management");
             System.out.println("0. Logout");
 
-            String input = InputUtil.stringInput("Choice: ");
+            int input = InputUtil.intInput("Choice: ");
 
             switch (input){
-                case "1" -> gameManagement();
-                case "2" -> userManagement();
-                case "3" -> transactionHistory();
-                case "4" -> couponManagement();
-                case "0" -> {
+                case 1 -> gameManagement();
+                case 2 -> userManagement();
+                case 3 -> transactionHistory();
+                case 4 -> couponManagement();
+                case 5 -> {
                     return;
                 }
                 default -> ColorUtil.printError("Please input a valid number!");
@@ -88,7 +88,7 @@ public class AdminView {
         Integer size = null;
         Integer stock = null;
         String title = InputUtil.stringInput("Input game title: ");
-        String categoryInput = InputUtil.stringInput("""
+        int categoryInput = InputUtil.intInput("""
                 Select game category
                 1. Action
                 2. RPG
@@ -97,7 +97,7 @@ public class AdminView {
                 5. Adventure
                 Select:\s""");
         BigDecimal price = InputUtil.bigDecimalInput("Input game price: ");
-        String typeInput = InputUtil.stringInput("""
+        int typeInput = InputUtil.intInput("""
                 Select game type
                 1. Digital
                 2. Physical
@@ -105,20 +105,20 @@ public class AdminView {
         LocalDate dateInput = DateUtil.dateInput("Input release date with format yyyy-MM-dd: ");
 
         switch (categoryInput) {
-            case "1" -> gameCategory = GameCategory.ACTION;
-            case "2" -> gameCategory = GameCategory.RPG;
-            case "3" -> gameCategory = GameCategory.SPORTS;
-            case "4" -> gameCategory = GameCategory.STRATEGY;
-            case "5" -> gameCategory = GameCategory.ADVENTURE;
+            case 1 -> gameCategory = GameCategory.ACTION;
+            case 2 -> gameCategory = GameCategory.RPG;
+            case 3 -> gameCategory = GameCategory.SPORTS;
+            case 4 -> gameCategory = GameCategory.STRATEGY;
+            case 5 -> gameCategory = GameCategory.ADVENTURE;
             default -> ColorUtil.printError("Please input a valid number!");
         }
 
         switch (typeInput) {
-            case "1" -> {
+            case 1 -> {
                 gameType = GameType.DIGITAL;
                 size = InputUtil.intInput("Input game size in Mb: ");
             }
-            case "2" -> {
+            case 2 -> {
                 gameType = GameType.PHYSICAL;
                 stock = InputUtil.intInput("Input game stock: ");
             }
