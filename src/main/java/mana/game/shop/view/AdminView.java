@@ -28,7 +28,12 @@ public class AdminView {
     private final CouponService couponService;
     private final User currentUser;
 
-    public AdminView(UserService userService, GameService gameService, TransactionService transactionService, CouponService couponService, User currentUser) {
+    public AdminView
+      (UserService userService, 
+       GameService gameService, 
+       TransactionService transactionService, 
+       CouponService couponService, 
+       User currentUser) {
         this.currentUser = currentUser;
         this.gameService = gameService;
         this.transactionService = transactionService;
