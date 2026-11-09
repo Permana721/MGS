@@ -2,16 +2,13 @@ package mana.game.shop.repository;
 
 import mana.game.shop.entity.Coupon;
 import mana.game.shop.exception.BusinessValidationException;
-import mana.game.shop.exception.DuplicateDataException;
 import mana.game.shop.util.DatabaseUtil;
-import mana.game.shop.util.DateUtil;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;

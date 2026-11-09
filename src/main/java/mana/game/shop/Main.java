@@ -21,5 +21,5 @@ public class Main {
         MainMenuView mainMenuView = new MainMenuView(userService, gameService, transactionService, couponService);
 
       mainMenuView.showMainMenu();
+    }
   }
-}

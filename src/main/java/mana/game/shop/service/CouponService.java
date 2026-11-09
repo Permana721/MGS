@@ -1,8 +1,7 @@
 package mana.game.shop.service;
 
-import mana.game.shop.entity.Coupon;
-
 import java.util.List;
+import mana.game.shop.entity.Coupon;
 
 public interface CouponService {
     void addCoupon(Coupon coupon);
