@@ -60,7 +60,7 @@ public class AdminView {
                 case 2 -> userManagement();
                 case 3 -> transactionHistory();
                 case 4 -> couponManagement();
-                case 5 -> {
+                case 0 -> {
                     return;
                 }
                 default -> ColorUtil.printError("Please input a valid number!");
