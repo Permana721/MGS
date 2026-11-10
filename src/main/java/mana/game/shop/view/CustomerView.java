@@ -3,6 +3,7 @@ package mana.game.shop.view;
 import mana.game.shop.entity.*;
 import mana.game.shop.exception.BusinessException;
 import mana.game.shop.exception.ResourceNotFoundException;
+import mana.game.shop.service.CouponService;
 import mana.game.shop.service.GameService;
 import mana.game.shop.service.TransactionService;
 import mana.game.shop.service.UserService;
@@ -19,12 +20,14 @@ public class CustomerView {
     private final UserService userService;
     private final GameService gameService;
     private final TransactionService transactionService;
+    private final CouponService couponService;
     private User currentUser;
 
-    public CustomerView(UserService userService, GameService gameService,  TransactionService transactionService, User currentUser) {
+    public CustomerView(UserService userService, GameService gameService, TransactionService transactionService, CouponService couponService, User currentUser) {
         this.currentUser = currentUser;
         this.transactionService = transactionService;
         this.gameService = gameService;
+        this.couponService = couponService;
         this.userService = userService;
     }
 
@@ -90,17 +93,40 @@ public class CustomerView {
 
         int gameId = InputUtil.intInput("Input Id game you want to buy: ");
 
-        try {
-            boolean result = transactionService.buyGame(currentUser.getId(), gameId);
-            if (result) {
-                currentUser = userService.findUser(currentUser.getId());
+        String couponCodeCheck = InputUtil.stringInput("Did you have a coupon code? y/n: ");
 
-                System.out.println("Success bought game!");
-                System.out.println("Now you have a game: " + gameService.findGame(gameId).getTitle());
-                System.out.println("And your balance is: Rp. " + CurrencyUtil.decimalFormat(currentUser.getBalance()));
+        switch (couponCodeCheck) {
+            case "y" -> {
+                String couponCode = InputUtil.stringInput("Input coupon code: ");
+                try {
+                    boolean result = transactionService.buyGame(currentUser.getId(), gameId, couponCode);
+                    if (result) {
+                        currentUser = userService.findUser(currentUser.getId());
+
+                        System.out.println("Success bought game!");
+                        System.out.println("Now you have a game: " + gameService.findGame(gameId).getTitle());
+                        System.out.println("And your balance is: Rp. " + CurrencyUtil.decimalFormat(currentUser.getBalance()));
+                    }
+                } catch (Exception exception) {
+                    ColorUtil.printError("An error occurred: " + exception.getMessage());
+                }
             }
-        } catch (BusinessException exception) {
-            ColorUtil.printError("An error occurred: " + exception.getMessage());
+            case "n" -> {
+                try {
+                    String couponCode = "None";
+                    boolean result = transactionService.buyGame(currentUser.getId(), gameId, couponCode);
+                    if (result) {
+                        currentUser = userService.findUser(currentUser.getId());
+
+                        System.out.println("Success bought game!");
+                        System.out.println("Now you have a game: " + gameService.findGame(gameId).getTitle());
+                        System.out.println("And your balance is: Rp. " + CurrencyUtil.decimalFormat(currentUser.getBalance()));
+                    }
+                } catch (Exception exception) {
+                    ColorUtil.printError("An error occurred: " + exception.getMessage());
+                }
+            }
+            default -> ColorUtil.printError("Please input a valid message!");
         }
     }
 
