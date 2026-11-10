@@ -148,7 +148,6 @@ public class UserRepositoryImpl implements UserRepository {
                 SET balance = balance - ?,
                 updated_at = CURRENT_TIMESTAMP\s
                 WHERE id = ? AND balance >= ?
-                RETURNING balance, updated_at
                \s""";
 
         try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
