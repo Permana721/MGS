@@ -14,6 +14,18 @@ public class DateUtil {
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
             .withZone(JAKARTA_ZONE);
 
+    public static boolean isNotStartedYet(Instant validFrom) {
+        if (validFrom == null) return false;
+
+        return Instant.now().isBefore(validFrom);
+    }
+
+    public static boolean isExpired(Instant validUntil) {
+        if (validUntil == null) return false;
+
+        return Instant.now().isAfter(validUntil);
+    }
+
     public static boolean isWithinLastDay(Instant instant, int days) {
         if (instant == null) return false;
 
