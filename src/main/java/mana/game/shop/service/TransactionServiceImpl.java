@@ -4,13 +4,17 @@ import mana.game.shop.entity.*;
 import mana.game.shop.exception.AuthenticationException;
 import mana.game.shop.exception.BusinessValidationException;
 import mana.game.shop.exception.ResourceNotFoundException;
+import mana.game.shop.repository.CouponRepository;
 import mana.game.shop.repository.GameRepository;
 import mana.game.shop.repository.TransactionRepository;
 import mana.game.shop.repository.UserRepository;
 import mana.game.shop.util.ColorUtil;
+import mana.game.shop.util.CurrencyUtil;
 import mana.game.shop.util.DatabaseUtil;
 import mana.game.shop.util.DateUtil;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -21,19 +25,23 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionRepository transactionRepository;
     private final GameRepository gameRepository;
     private final UserRepository userRepository;
+    private final CouponRepository couponRepository;
 
-    public TransactionServiceImpl(TransactionRepository transactionRepository, GameRepository gameRepository, UserRepository userRepository) {
+    public TransactionServiceImpl(TransactionRepository transactionRepository, GameRepository gameRepository, UserRepository userRepository, CouponRepository couponRepository) {
         this.transactionRepository = transactionRepository;
         this.gameRepository = gameRepository;
         this.userRepository = userRepository;
+        this.couponRepository = couponRepository;
     }
 
     @Override
-    public boolean buyGame(int userId, int gameId) {
+    public boolean buyGame(int userId, int gameId, String couponCode) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with Id " + userId + " not found!"));
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new ResourceNotFoundException("Game with Id " + gameId + " not found!"));
+
+        BigDecimal discountAmount = calculateDiscount(game.getPrice(), couponCode);
 
         if (game.getGameType().equals(GameType.PHYSICAL) && game.getStock() <= 0) {
             throw new BusinessValidationException("Physical copies of the game are out of stock!");
@@ -47,24 +55,39 @@ public class TransactionServiceImpl implements TransactionService {
             throw new AuthenticationException("User balance is insufficient");
         }
 
+        if (discountAmount.compareTo(game.getPrice()) > 0) {
+            throw new BusinessValidationException("Cannot apply this coupon because amount coupon is more bigger than game price.");
+        }
+
+
         Connection connection = null;
 
         try {
             connection = DatabaseUtil.getDataSource().getConnection();
             connection.setAutoCommit(false);
 
-            boolean balanceDeducted = userRepository.decreaseBalance(connection, user, game.getPrice());
+            boolean balanceDeducted = userRepository.decreaseBalance(connection, user, game.getPrice().subtract(discountAmount));
+
             if (!balanceDeducted) {
                 throw new BusinessValidationException("Failed to deduct balance.");
             }
 
             if (game.getGameType().equals(GameType.PHYSICAL)) {
-                gameRepository.decreaseStock(connection, gameId, 1);
+                gameRepository.decreaseStock(connection, game.getId(), 1);
             }
 
-            boolean savedTransaction = transactionRepository.saveTransaction(connection, userId, gameId, game.getPrice());
+            boolean savedTransaction = transactionRepository.saveTransaction(connection, user.getId(), game.getId(), game.getPrice().subtract(discountAmount));
+
             if (!savedTransaction) {
                 throw new BusinessValidationException("Failed to record transaction log!");
+            }
+
+            if (discountAmount.compareTo(BigDecimal.ZERO) > 0) {
+                Coupon coupon = couponRepository.findByCode(couponCode)
+                        .orElseThrow(() -> new ResourceNotFoundException("Coupon with code " + couponCode + " not found!"));
+
+                couponRepository.recordCouponUsage(connection, userId, coupon.getId());
+                couponRepository.increaseCouponUsedCount(couponCode);
             }
 
             connection.commit();
@@ -190,5 +213,43 @@ public class TransactionServiceImpl implements TransactionService {
         return transactionRepository.findAllByUserId(userId);
     }
 
+    private BigDecimal calculateDiscount (BigDecimal gamePrice, String couponCode) {
+        if (couponCode.equals("None")) {
+            return BigDecimal.ZERO;
+        }
 
+        Coupon coupon = couponRepository.findByCode(couponCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Coupon with code " + couponCode + " not found!"));
+
+        if (!coupon.isIs_active()) {
+            throw new BusinessValidationException("This coupon is nonactive! please use another coupon.");
+        }
+
+        if (DateUtil.isNotStartedYet(coupon.getValid_from())) {
+            throw new BusinessValidationException("Cannot use this coupon, because coupon cannot be used yet!");
+        }
+
+        if (DateUtil.isExpired(coupon.getValid_until())) {
+            throw new BusinessValidationException("Cannot use this coupon, because it has expired.");
+        }
+
+        if (coupon.getUsed_count() >= coupon.getUsage_limit()) {
+            throw new BusinessValidationException("Cannot use this coupon, because limit count got reached!");
+        }
+
+        if (gamePrice.compareTo(coupon.getMin_purchase()) <= 0) {
+            throw new BusinessValidationException("Cannot use this coupon, because this coupon has minimal transaction Rp. "
+                    + CurrencyUtil.decimalFormat(coupon.getMin_purchase())
+                    + " please buy more expensive game for use this coupon.");
+        }
+
+        BigDecimal discountAmount = gamePrice.multiply(coupon.getDiscount_percent()
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
+
+        if (discountAmount.compareTo(coupon.getMax_discount()) < 0) {
+            return coupon.getMax_discount();
+        }
+
+        return discountAmount;
+    }
 }
