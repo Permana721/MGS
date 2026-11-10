@@ -11,6 +11,7 @@ public interface CouponRepository {
     boolean update(Coupon coupon);
     boolean updateIsActiveStatus(String code, boolean is_active);
     boolean delete(String code);
+    boolean increaseCouponUsedCount(String code);
     boolean recordCouponUsage(Connection connection, int userId, int couponId);
     Optional<Coupon> findByCode(String code);
     List<Coupon> findAll();
