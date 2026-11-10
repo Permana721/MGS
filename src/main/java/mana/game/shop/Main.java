@@ -17,7 +17,7 @@ public class Main {
         UserService userService = new UserServiceImpl(userRepository);
         GameService gameService = new GameServiceImpl(gameRepository);
         CouponService couponService = new CouponServiceImpl(couponRepository);
-        TransactionService transactionService = new TransactionServiceImpl(transactionRepository, gameRepository, userRepository);
+        TransactionService transactionService = new TransactionServiceImpl(transactionRepository, gameRepository, userRepository, couponRepository);
         MainMenuView mainMenuView = new MainMenuView(userService, gameService, transactionService, couponService);
 
       mainMenuView.showMainMenu();
