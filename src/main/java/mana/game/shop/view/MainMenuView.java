@@ -93,7 +93,7 @@ public class MainMenuView {
                 AdminView adminView = new AdminView(userService, gameService, transactionService, couponService, currentUser);
                 adminView.showMenu();
             } else {
-                CustomerView customerView = new CustomerView(userService, gameService, transactionService, currentUser);
+                CustomerView customerView = new CustomerView(userService, gameService, transactionService, couponService, currentUser);
                 customerView.showMenu();
             }
         } catch (BusinessException exception) {
