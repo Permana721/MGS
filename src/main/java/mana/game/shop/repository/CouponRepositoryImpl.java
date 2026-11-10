@@ -127,6 +127,25 @@ public class CouponRepositoryImpl implements CouponRepository{
     }
 
     @Override
+    public boolean increaseCouponUsedCount(String code) {
+          String sql = """
+                UPDATE coupons\s
+                SET used_count = used_count + 1,
+                updated_at = CURRENT_TIMESTAMP
+                WHERE code = ?
+               \s""";
+
+          try(Connection connection = dataSource.getConnection()){
+             PreparedStatement prepareStatement = connection.prepareStatement(sql);
+             prepareStatement.setString(1, code);
+             int rowsUpdated = prepareStatement.executeUpdate();
+             return rowsUpdated > 0;
+          } catch (SQLException exception) {
+            throw new RuntimeException(exception.getMessage());
+          }
+    }
+
+    @Override
     public boolean recordCouponUsage(Connection connection, int userId, int couponId) {
         String sql = """
                 INSERT INTO user_coupons
