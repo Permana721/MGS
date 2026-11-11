@@ -79,25 +79,32 @@ CREATE TABLE transactions (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     user_id BIGINT NOT NULL,
     game_id BIGINT NOT NULL,
-    amount NUMERIC(12, 2) NOT NULL CHECK (amount >= 0),
+    coupon_id BIGINT,
+    original_amount NUMERIC(12, 2) NOT NULL CHECK (original_amount > 0),
+    discount_amount NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (discount_amount >= 0),
+    total_amount NUMERIC(12, 2) NOT NULL CHECK (total_amount >= 0),
     status transaction_status NOT NULL DEFAULT 'SUCCESS',
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT fk_transactions_user FOREIGN KEY (user_id) 
+    CONSTRAINT foreign_key_transactions_user FOREIGN KEY (user_id)
         REFERENCES users(id) ON DELETE RESTRICT,
         
-    CONSTRAINT fk_transactions_game FOREIGN KEY (game_id) 
-        REFERENCES games(id) ON DELETE RESTRICT
+    CONSTRAINT foreign_key_transactions_game FOREIGN KEY (game_id)
+        REFERENCES games(id) ON DELETE RESTRICT,
+
+    CONSTRAINT foreign_key_transactions_coupon FOREIGN KEY (coupon_id)
+        REFERENCES coupons(id) ON DELETE RESTRICT,
+
+    CONSTRAINT check_transaction_amounts CHECK (
+        discount_amount <= original_amount AND
+        total_amount = (original_amount - discount_amount)
+    )
 );
 
 CREATE INDEX idx_transactions_user_id ON transactions(user_id);
 CREATE INDEX idx_transactions_game_id ON transactions(game_id);
 CREATE INDEX idx_transactions_created_at ON transactions(created_at DESC);
-
-ALTER TABLE transactions
-ADD COLUMN coupon_id INT REFERENCES coupons(id),
-ADD COLUMN original_amount NUMERIC(12, 2),
-ADD COLUMN discount_amount NUMERIC(12, 2) DEFAULT 0;
 
 COMMIT;
 -- END TABLE transactions
@@ -122,10 +129,13 @@ CREATE TABLE coupons (
 -- CREATE TABLE user_coupons
 CREATE TABLE user_coupons (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    coupon_id INT NOT NULL REFERENCES coupons(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    coupon_id BIGINT NOT NULL REFERENCES coupons(id) ON DELETE CASCADE,
+    is_redeemed BOOLEAN NOT NULL DEFAULT FALSE,
     used_at TIMESTAMPTZ,
-    is_redeemed BOOLEAN DEFAULT FALSE,
-    UNIQUE (user_id, coupon_id)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT unique_user_coupon UNIQUE (user_id, coupon_id)
 );
 -- END TABLE user_coupons
