@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 public class Coupon {
-    private int id;
+    private Integer id;
     private String code;
     private BigDecimal discount_percent;
     private BigDecimal max_discount;
@@ -30,11 +30,11 @@ public class Coupon {
     public Coupon() {
     }
 
-    public int getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 
