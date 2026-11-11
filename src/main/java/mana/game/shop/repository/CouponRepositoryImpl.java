@@ -138,20 +138,55 @@ public class CouponRepositoryImpl implements CouponRepository{
           try(Connection connection = dataSource.getConnection()){
              PreparedStatement prepareStatement = connection.prepareStatement(sql);
              prepareStatement.setString(1, code);
-             int rowsUpdated = prepareStatement.executeUpdate();
-             return rowsUpdated > 0;
+
+              try {
+                  int rowsUpdated = prepareStatement.executeUpdate();
+                  return rowsUpdated > 0;
+              } catch (SQLException exception) {
+                  throw new RuntimeException(exception.getMessage());
+              }
+
           } catch (SQLException exception) {
             throw new RuntimeException(exception.getMessage());
           }
     }
 
     @Override
+    public boolean decreaseCouponUsedCount(int id) {
+        String sql = """
+                UPDATE coupons\s
+                SET used_count = used_count - 1,
+                updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+               \s""";
+
+        try(Connection connection = dataSource.getConnection()){
+            PreparedStatement prepareStatement = connection.prepareStatement(sql);
+            prepareStatement.setInt(1, id);
+
+            try {
+                int rowsUpdated = prepareStatement.executeUpdate();
+                return rowsUpdated > 0;
+            } catch (SQLException exception) {
+                throw new RuntimeException(exception.getMessage());
+            }
+
+        } catch (SQLException exception) {
+            throw new RuntimeException(exception.getMessage());
+        }
+    }
+
+    @Override
     public boolean recordCouponUsage(Connection connection, int userId, int couponId) {
         String sql = """
-                INSERT INTO user_coupons
-                (user_id, coupon_id, used_at, is_redeemed)
-                VALUES
-                (?, ?, CURRENT_TIMESTAMP, true)
+                INSERT INTO user_coupons (user_id, coupon_id, is_redeemed, used_at, updated_at)
+                VALUES (?, ?, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                ON CONFLICT (user_id, coupon_id)\s
+                DO UPDATE SET\s
+                    is_redeemed = TRUE,
+                    used_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE user_coupons.is_redeemed = FALSE;
                 """;
 
         try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
@@ -168,6 +203,64 @@ public class CouponRepositoryImpl implements CouponRepository{
         } catch (SQLException exception) {
             throw new RuntimeException((exception.getMessage()));
         }
+    }
+
+    @Override
+    public boolean refundCoupon(Connection connection, int userId, int couponId) {
+        String sql = """
+                UPDATE user_coupons
+                SET is_redeemed = FALSE,
+                used_at = NULL,
+                updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = ?\s
+                AND coupon_id = ?
+                AND is_redeemed = TRUE
+               \s""";
+
+        try{
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+            preparedStatement.setInt(1, userId);
+            preparedStatement.setInt(2, couponId);
+
+            try {
+                int rowsAffected = preparedStatement.executeUpdate();
+                return rowsAffected > 0;
+            } catch (SQLException exception) {
+                throw new RuntimeException(exception.getMessage());
+            }
+
+        } catch (SQLException exception) {
+            throw new RuntimeException(exception.getMessage());
+        }
+    }
+
+    @Override
+    public boolean checkIsRedeemed(int userId, int couponId) {
+        String sql = """
+                SELECT is_redeemed
+                FROM user_coupons
+                WHERE user_id = ?
+                AND coupon_id = ?
+                """;
+
+        try(Connection connection = dataSource.getConnection()){
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+            preparedStatement.setInt(1, userId);
+            preparedStatement.setInt(2, couponId);
+
+            try {
+                ResultSet resultSet = preparedStatement.executeQuery();
+                if (resultSet.next()) {
+                    return resultSet.getBoolean("is_redeemed");
+                }
+            } catch (SQLException exception) {
+                throw new RuntimeException(exception.getMessage());
+            }
+
+        } catch (SQLException exception) {
+            throw new RuntimeException(exception.getMessage());
+        }
+        return false;
     }
 
     @Override
