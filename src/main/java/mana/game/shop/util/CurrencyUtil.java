@@ -5,10 +5,14 @@ import java.text.NumberFormat;
 import java.util.Locale;
 
 public class CurrencyUtil {
-    public static String decimalFormat(BigDecimal amount) {
-        Locale indonesia = Locale.forLanguageTag("id-ID");
+    private static final Locale INDONESIA = Locale.forLanguageTag("id-ID");
 
-        NumberFormat numberFormat = NumberFormat.getNumberInstance(indonesia);
+    public static String decimalFormat(BigDecimal amount) {
+        if (amount == null) {
+            return "0";
+        }
+
+        NumberFormat numberFormat = NumberFormat.getNumberInstance(INDONESIA);
         numberFormat.setMaximumFractionDigits(0);
 
         return numberFormat.format(amount);
