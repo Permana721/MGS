@@ -519,9 +519,9 @@ public class AdminView {
             System.out.println("Transaction Id    : " + transaction.getId());
             System.out.println("User Id           : " + transaction.getUserId() + " (" + userService.findUser(transaction.getUserId()).getUsername() + ")");
             System.out.println("Game Id           : " + transaction.getGameId() + " (" + gameService.findGame(transaction.getGameId()).getTitle() + ")");
-            System.out.println("Price             : Rp. " + CurrencyUtil.decimalFormat(transaction.getAmount()));
+            System.out.println("Price             : Rp. " + CurrencyUtil.decimalFormat(transaction.getTotalAmount()));
             System.out.println("Status            : " + transaction.getStatus().getDisplayName());
-            System.out.println("Transaction Date  : " + DateUtil.formatDate(transaction.getTransactionDate()));
+            System.out.println("Transaction Date  : " + DateUtil.formatDate(transaction.getCreated_at()));
             System.out.println("========================================================\n");
         } catch (ResourceNotFoundException exception) {
             ColorUtil.printError("An error occurred: " + exception.getMessage());
