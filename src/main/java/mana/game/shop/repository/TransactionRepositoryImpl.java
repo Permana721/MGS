@@ -24,50 +24,57 @@ public class TransactionRepositoryImpl implements TransactionRepository {
     }
 
     @Override
-    public boolean saveTransaction(Connection connection, int userId, int gameId, BigDecimal amount) {
+    public Optional<Transaction> save(Connection connection, int userId, int gameId, Integer couponId, BigDecimal originalAmount, BigDecimal discountAmount, BigDecimal totalAmount) {
         String sql = """
                 INSERT INTO transactions\s
-                (user_id, game_id, amount)\s
+                (user_id, game_id, coupon_id, original_amount, discount_amount, total_amount)\s
                 VALUES\s
-                (?, ?, ?)
+                (?, ?, ?, ?, ?, ?)
+                RETURNING *
                \s""";
 
         try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
             preparedStatement.setInt(1, userId);
             preparedStatement.setInt(2, gameId);
-            preparedStatement.setBigDecimal(3, amount);
-            int rowsUpdated = preparedStatement.executeUpdate();
-            return rowsUpdated > 0;
+            preparedStatement.setObject(3, couponId);
+            preparedStatement.setBigDecimal(4, originalAmount);
+            preparedStatement.setBigDecimal(5, discountAmount);
+            preparedStatement.setBigDecimal(6, totalAmount);
+
+            try {
+                ResultSet resultSet = preparedStatement.executeQuery();
+                if (resultSet.next()) {
+                    return Optional.of(rowHelper(resultSet));
+                }
+            } catch (SQLException exception) {
+                throw new RuntimeException(exception.getMessage());
+            }
+            return Optional.empty();
         } catch (SQLException exception) {
             throw new RuntimeException(exception.getMessage());
         }
     }
 
     @Override
-    public Optional<Transaction> update(Connection connection, int id, TransactionStatus status) {
+    public boolean update(Connection connection, int id, TransactionStatus status) {
         String sql = """
                 UPDATE transactions
                 SET status = ?::transaction_status,
                 updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?\s
-                RETURNING *
                \s""";
 
         try(PreparedStatement preparedStatement = connection.prepareStatement(sql)){
             preparedStatement.setString(1, status.name());
             preparedStatement.setInt(2, id);
 
-            try(ResultSet resultSet = preparedStatement.executeQuery()){
-                if (resultSet.next()) {
-                    Transaction transaction = rowHelper(resultSet);
-                    transaction.setStatus(TransactionStatus.valueOf(resultSet.getString("status")));
-                    transaction.setUpdated_at(DatabaseUtil.getInstant(resultSet, "updated_at"));
-                    return Optional.of(transaction);
-                }
+            try {
+                int rowsUpdated = preparedStatement.executeUpdate();
+                return rowsUpdated > 0;
             } catch (SQLException exception) {
                 throw new RuntimeException(exception.getMessage());
             }
-            return Optional.empty();
+
         } catch (SQLException exception) {
             throw new RuntimeException(exception.getMessage());
         }
@@ -218,9 +225,13 @@ public class TransactionRepositoryImpl implements TransactionRepository {
         transaction.setId(resultSet.getInt("id"));
         transaction.setUserId(resultSet.getInt("user_id"));
         transaction.setGameId(resultSet.getInt("game_id"));
-        transaction.setAmount(resultSet.getBigDecimal("amount"));
+        Long couponId = resultSet.getObject("coupon_id", Long.class);
+        transaction.setCouponId(couponId != null ? couponId.intValue() : null);
+        transaction.setOriginalAmount(resultSet.getBigDecimal("original_amount"));
+        transaction.setDiscountAmount(resultSet.getBigDecimal("discount_amount"));
+        transaction.setTotalAmount(resultSet.getBigDecimal("total_amount"));
         transaction.setStatus(transactionStatus);
-        transaction.setTransactionDate(DatabaseUtil.getInstant(resultSet, "created_at"));
+        transaction.setCreated_at(DatabaseUtil.getInstant(resultSet, "created_at"));
         transaction.setUpdated_at(DatabaseUtil.getInstant(resultSet, "updated_at"));
         return transaction;
     }
