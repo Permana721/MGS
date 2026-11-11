@@ -7,16 +7,22 @@ public class Transaction {
     private int id;
     private int userId;
     private int gameId;
-    private BigDecimal amount;
+    private Integer couponId;
+    private BigDecimal originalAmount;
+    private BigDecimal discountAmount;
+    private BigDecimal totalAmount;
     private TransactionStatus status;
-    private Instant transactionDate;
+    private Instant created_at;
     private Instant updated_at;
 
-    public Transaction(int userId, int gameId, BigDecimal amount) {
+    public Transaction(int userId, int gameId, Integer couponId, BigDecimal originalAmount, BigDecimal discountAmount, BigDecimal totalAmount, TransactionStatus status) {
         this.userId = userId;
         this.gameId = gameId;
-        this.amount = amount;
-        this.transactionDate = Instant.ofEpochMilli(System.currentTimeMillis());
+        this.couponId = couponId;
+        this.originalAmount = originalAmount;
+        this.discountAmount = discountAmount;
+        this.totalAmount = totalAmount;
+        this.status = status;
     }
 
     public Transaction() {
@@ -46,12 +52,36 @@ public class Transaction {
         this.gameId = gameId;
     }
 
-    public BigDecimal getAmount() {
-        return amount;
+    public Integer getCouponId() {
+        return couponId;
     }
 
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
+    public void setCouponId(Integer couponId) {
+        this.couponId = couponId;
+    }
+
+    public BigDecimal getOriginalAmount() {
+        return originalAmount;
+    }
+
+    public void setOriginalAmount(BigDecimal originalAmount) {
+        this.originalAmount = originalAmount;
+    }
+
+    public BigDecimal getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public void setDiscountAmount(BigDecimal discountAmount) {
+        this.discountAmount = discountAmount;
+    }
+
+    public BigDecimal getTotalAmount() {
+        return totalAmount;
+    }
+
+    public void setTotalAmount(BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
     }
 
     public TransactionStatus getStatus() {
@@ -62,12 +92,12 @@ public class Transaction {
         this.status = status;
     }
 
-    public void setTransactionDate(Instant transactionDate) {
-        this.transactionDate = transactionDate;
+    public Instant getCreated_at() {
+        return created_at;
     }
 
-    public Instant getTransactionDate() {
-        return transactionDate;
+    public void setCreated_at(Instant created_at) {
+        this.created_at = created_at;
     }
 
     public Instant getUpdated_at() {
