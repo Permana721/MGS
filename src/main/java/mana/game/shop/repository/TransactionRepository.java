@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TransactionRepository {
-    boolean saveTransaction(Connection connection, int userId, int gameId, BigDecimal amount);
-    Optional<Transaction> update(Connection connection, int id, TransactionStatus status);
+    Optional<Transaction> save(Connection connection, int userId, int gameId, Integer couponId, BigDecimal originalAmount, BigDecimal discountAmount, BigDecimal totalAmount);
+    boolean update(Connection connection, int id, TransactionStatus status);
     List<Transaction> findAllByUserId(int UserId);
     List<Transaction> filteredFindAllByUserId(int userId);
     List<Transaction> findTransactionsByDate(Instant fromDate, Instant toDate);
