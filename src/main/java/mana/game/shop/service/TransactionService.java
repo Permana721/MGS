@@ -4,9 +4,10 @@ import mana.game.shop.entity.Transaction;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 public interface TransactionService {
-    boolean buyGame(int userId, int gameId, String couponCode);
+    Transaction buyGame(int userId, int gameId, String couponCode);
     boolean refundTransaction(int transactionId, int userId);
     Transaction findTransaction(int id);
     List<Transaction> findTransactionById(int userId);
