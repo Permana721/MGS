@@ -12,7 +12,10 @@ public interface CouponRepository {
     boolean updateIsActiveStatus(String code, boolean is_active);
     boolean delete(String code);
     boolean increaseCouponUsedCount(String code);
+    boolean decreaseCouponUsedCount(int id);
     boolean recordCouponUsage(Connection connection, int userId, int couponId);
+    boolean checkIsRedeemed(int userId, int couponId);
+    boolean refundCoupon(Connection connection, int userId, int couponId);
     Optional<Coupon> findByCode(String code);
     List<Coupon> findAll();
 }
