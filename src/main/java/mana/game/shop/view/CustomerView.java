@@ -2,6 +2,7 @@ package mana.game.shop.view;
 
 import mana.game.shop.entity.*;
 import mana.game.shop.exception.BusinessException;
+import mana.game.shop.exception.BusinessValidationException;
 import mana.game.shop.exception.ResourceNotFoundException;
 import mana.game.shop.service.CouponService;
 import mana.game.shop.service.GameService;
@@ -95,38 +96,37 @@ public class CustomerView {
 
         String couponCodeCheck = InputUtil.stringInput("Did you have a coupon code? y/n: ");
 
-        switch (couponCodeCheck) {
-            case "y" -> {
-                String couponCode = InputUtil.stringInput("Input coupon code: ");
-                try {
-                    boolean result = transactionService.buyGame(currentUser.getId(), gameId, couponCode);
-                    if (result) {
-                        currentUser = userService.findUser(currentUser.getId());
+        String couponCode = null;
 
-                        System.out.println("Success bought game!");
-                        System.out.println("Now you have a game: " + gameService.findGame(gameId).getTitle());
-                        System.out.println("And your balance is: Rp. " + CurrencyUtil.decimalFormat(currentUser.getBalance()));
-                    }
-                } catch (Exception exception) {
-                    ColorUtil.printError("An error occurred: " + exception.getMessage());
-                }
+        switch (couponCodeCheck.toLowerCase()) {
+            case "y" -> couponCode = InputUtil.stringInput("Input coupon code: ").trim();
+            case "n" -> couponCode = null;
+            default -> {
+                ColorUtil.printError("Invalid choice!");
+                return;
             }
-            case "n" -> {
-                try {
-                    String couponCode = "None";
-                    boolean result = transactionService.buyGame(currentUser.getId(), gameId, couponCode);
-                    if (result) {
-                        currentUser = userService.findUser(currentUser.getId());
+        }
 
-                        System.out.println("Success bought game!");
-                        System.out.println("Now you have a game: " + gameService.findGame(gameId).getTitle());
-                        System.out.println("And your balance is: Rp. " + CurrencyUtil.decimalFormat(currentUser.getBalance()));
-                    }
-                } catch (Exception exception) {
-                    ColorUtil.printError("An error occurred: " + exception.getMessage());
-                }
+        try {
+            Game game = gameService.findGame(gameId);
+            Transaction transaction = transactionService.buyGame(currentUser.getId(), gameId, couponCode);
+            currentUser = userService.findUser(currentUser.getId());
+
+            System.out.println("\nSuccessfully bought game!");
+            System.out.println("Game Title     : " + game.getTitle());
+            System.out.println("Original Price : Rp. " + CurrencyUtil.decimalFormat(transaction.getOriginalAmount()));
+
+            if (transaction.getDiscountAmount() != null && transaction.getDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
+                System.out.println("Discount       : Rp. " + CurrencyUtil.decimalFormat(transaction.getDiscountAmount()));
             }
-            default -> ColorUtil.printError("Please input a valid message!");
+
+            System.out.println("Total Paid     : Rp. " + CurrencyUtil.decimalFormat(transaction.getTotalAmount()));
+            System.out.println("Current Balance: Rp. " + CurrencyUtil.decimalFormat(currentUser.getBalance()));
+
+        } catch (BusinessValidationException | ResourceNotFoundException e) {
+            ColorUtil.printError(e.getMessage());
+        } catch (Exception e) {
+            ColorUtil.printError("An error occurred: " + e.getMessage());
         }
     }
 
@@ -144,7 +144,7 @@ public class CustomerView {
                 boolean result = transactionService.refundTransaction(input, currentUser.getId());
                 if (result) {
                     ColorUtil.printSuccess("Success to refund transaction! Balance Rp. "
-                            + CurrencyUtil.decimalFormat(transactionService.findTransaction(input).getAmount())
+                            + CurrencyUtil.decimalFormat(transactionService.findTransaction(input).getTotalAmount())
                             + " and game " + gameService.findGame(transactionService.findTransaction(input).getGameId()).getTitle()
                             + " refund successful!");
                 }
@@ -255,9 +255,9 @@ public class CustomerView {
         YearMonth currentMonth = YearMonth.now(zoneId);
 
         Map<Boolean, List<Transaction>> partitioned = transactions.stream()
-                .collect(Collectors.partitioningBy(tx -> {
-                    YearMonth txMonth = YearMonth.from(tx.getTransactionDate().atZone(zoneId));
-                    return txMonth.equals(currentMonth);
+                .collect(Collectors.partitioningBy(transaction -> {
+                    YearMonth transactionMonth = YearMonth.from(transaction.getCreated_at().atZone(zoneId));
+                    return transactionMonth.equals(currentMonth);
                 }));
 
         List<Transaction> thisMonthTransactions = partitioned.getOrDefault(true, List.of());
@@ -289,12 +289,11 @@ public class CustomerView {
             System.out.println("\n==================================");
             System.out.println("Transaction id: " + transaction.getId());
             System.out.println("Purchased games: " + gameService.findGame(transaction.getGameId()).getTitle());
-            System.out.println("Amount: " + CurrencyUtil.decimalFormat(transaction.getAmount()));
+            System.out.println("Amount: " + CurrencyUtil.decimalFormat(transaction.getTotalAmount()));
             System.out.println("Status: " + transaction.getStatus().getDisplayName());
-            System.out.println("Date of purchase: " + DateUtil.formatDate(transaction.getTransactionDate()));
+            System.out.println("Date of purchase: " + DateUtil.formatDate(transaction.getCreated_at()));
             System.out.println("==================================\n");
         });
-
     }
 
     private void printTransactionList(List<Transaction> transactions) {
@@ -305,7 +304,7 @@ public class CustomerView {
             System.out.println("Game: " + game.getTitle());
             System.out.println("Price: Rp. " + CurrencyUtil.decimalFormat(game.getPrice()));
             System.out.println("Status: " + transaction.getStatus().getDisplayName());
-            System.out.println("Purchase date: " + DateUtil.formatDate(transaction.getTransactionDate()));
+            System.out.println("Purchase date: " + DateUtil.formatDate(transaction.getCreated_at()));
             System.out.println("========================================\n");
         }
     }
