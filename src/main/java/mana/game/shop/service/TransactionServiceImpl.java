@@ -19,6 +19,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 public class TransactionServiceImpl implements TransactionService {
@@ -35,13 +36,24 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    public boolean buyGame(int userId, int gameId, String couponCode) {
+    public Transaction buyGame(int userId, int gameId, String couponCode) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with Id " + userId + " not found!"));
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new ResourceNotFoundException("Game with Id " + gameId + " not found!"));
 
-        BigDecimal discountAmount = calculateDiscount(game.getPrice(), couponCode);
+        Coupon coupon = null;
+
+        if (Objects.nonNull(couponCode)) {
+            coupon = couponRepository.findByCode(couponCode)
+                    .orElseThrow(() -> new ResourceNotFoundException("Coupon with code " + couponCode + " not found!"));
+            boolean redeemed = couponRepository.checkIsRedeemed(userId, coupon.getId());
+            if (redeemed) {
+                throw new BusinessValidationException("Cannot apply this coupon because this coupon has already use.");
+            }
+        }
+
+        BigDecimal discountAmount = calculateDiscount(game.getPrice(), coupon);
 
         if (game.getGameType().equals(GameType.PHYSICAL) && game.getStock() <= 0) {
             throw new BusinessValidationException("Physical copies of the game are out of stock!");
@@ -59,7 +71,6 @@ public class TransactionServiceImpl implements TransactionService {
             throw new BusinessValidationException("Cannot apply this coupon because amount coupon is more bigger than game price.");
         }
 
-
         Connection connection = null;
 
         try {
@@ -76,23 +87,20 @@ public class TransactionServiceImpl implements TransactionService {
                 gameRepository.decreaseStock(connection, game.getId(), 1);
             }
 
-            boolean savedTransaction = transactionRepository.saveTransaction(connection, user.getId(), game.getId(), game.getPrice().subtract(discountAmount));
+            Transaction savedTransaction = transactionRepository
+                    .save(connection, user.getId(), game.getId(),
+                            coupon.getId(), game.getPrice(), discountAmount,
+                            game.getPrice().subtract(discountAmount)).orElseThrow(() -> new RuntimeException("Failed to save transaction!"));
 
-            if (!savedTransaction) {
-                throw new BusinessValidationException("Failed to record transaction log!");
-            }
 
-            if (discountAmount.compareTo(BigDecimal.ZERO) > 0) {
-                Coupon coupon = couponRepository.findByCode(couponCode)
-                        .orElseThrow(() -> new ResourceNotFoundException("Coupon with code " + couponCode + " not found!"));
-
+            if (Objects.nonNull(coupon)) {
                 couponRepository.recordCouponUsage(connection, userId, coupon.getId());
                 couponRepository.increaseCouponUsedCount(couponCode);
             }
 
             connection.commit();
 
-            return true;
+            return savedTransaction;
 
         } catch (Exception exception) {
             try {
@@ -126,7 +134,7 @@ public class TransactionServiceImpl implements TransactionService {
             throw new BusinessValidationException("This transaction isn't yours!");
         }
 
-        if (DateUtil.isOlderThanDays(transaction.getTransactionDate(), 7)) {
+        if (DateUtil.isOlderThanDays(transaction.getCreated_at(), 7)) {
             throw new BusinessValidationException("The 7-day refund deadline has passed");
         }
 
@@ -143,7 +151,7 @@ public class TransactionServiceImpl implements TransactionService {
         try {
             connection = DatabaseUtil.getDataSource().getConnection();
             connection.setAutoCommit(false);
-            boolean increaseBalance = userRepository.increaseBalance(connection, userId, transaction.getAmount());
+            boolean increaseBalance = userRepository.increaseBalance(connection, user.getId(), transaction.getTotalAmount());
             if (!increaseBalance) {
                 throw new BusinessValidationException("Failed to increase user balance");
             }
@@ -154,8 +162,10 @@ public class TransactionServiceImpl implements TransactionService {
                     ColorUtil.printError("Failed for add stock: " + exception.getMessage());
                 }
             }
-            Optional<Transaction> result = transactionRepository.update(connection, transactionId, TransactionStatus.REFUNDED);
-            if (result.isPresent()) {
+            boolean decreaseCouponUsedCount = couponRepository.decreaseCouponUsedCount(transaction.getCouponId());
+            boolean result = transactionRepository.update(connection, transactionId, TransactionStatus.REFUNDED);
+            boolean refundCoupon = couponRepository.refundCoupon(connection, userId, transaction.getCouponId());
+            if (result && refundCoupon && decreaseCouponUsedCount) {
                 connection.commit();
                 return true;
             }
@@ -213,14 +223,7 @@ public class TransactionServiceImpl implements TransactionService {
         return transactionRepository.findAllByUserId(userId);
     }
 
-    private BigDecimal calculateDiscount (BigDecimal gamePrice, String couponCode) {
-        if (couponCode.equals("None")) {
-            return BigDecimal.ZERO;
-        }
-
-        Coupon coupon = couponRepository.findByCode(couponCode)
-                .orElseThrow(() -> new ResourceNotFoundException("Coupon with code " + couponCode + " not found!"));
-
+    private BigDecimal calculateDiscount (BigDecimal gamePrice, Coupon coupon) {
         if (!coupon.isIs_active()) {
             throw new BusinessValidationException("This coupon is nonactive! please use another coupon.");
         }
